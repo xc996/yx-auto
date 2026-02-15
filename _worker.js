@@ -62,9 +62,10 @@ function parseCustomPorts(value) {
     return ports;
 }
 
-function isAccessAllowed(url, env) {
+function isAccessAllowed(url, env, path) {
     const required = env?.u;
     if (!required) return true;
+    if (path === '/' || path === '') return true;
     const provided = url.searchParams.get('u') || '';
     return provided === required;
 }
@@ -1266,10 +1267,120 @@ function generateHomePage(scuValue) {
             }
             
         }
+
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 10;
+            padding: 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 0.5px solid rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .auth-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 12px;
+            border-radius: 16px;
+            background: rgba(0, 122, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #007AFF;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .auth-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            font-size: 14px;
+            color: #86868b;
+            margin-bottom: 18px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            background: rgba(142, 142, 147, 0.12);
+            outline: none;
+            transition: all 0.2s ease;
+            margin-bottom: 14px;
+        }
+
+        .auth-input:focus {
+            border-color: #007AFF;
+            background: rgba(142, 142, 147, 0.16);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 12px;
+            background: #007AFF;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0, 122, 255, 0.28);
+            transition: all 0.2s ease;
+        }
+
+        .auth-btn:active {
+            transform: scale(0.98);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .auth-card {
+                background: rgba(28, 28, 30, 0.9);
+                border-color: rgba(255, 255, 255, 0.1);
+            }
+
+            .auth-subtitle {
+                color: #9c9ca3;
+            }
+
+            .auth-input {
+                background: rgba(142, 142, 147, 0.2);
+                color: #f5f5f7;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+            <div class="auth-icon">🔒</div>
+            <div class="auth-title">访问验证</div>
+            <div class="auth-subtitle">请输入访问密码后继续</div>
+            <input type="password" id="accessKey" class="auth-input" placeholder="请输入密码">
+            <button type="button" id="accessSubmit" class="auth-btn">进入</button>
+        </div>
+    </div>
+    <div class="container" id="appContainer" style="display: none;">
         <div class="header">
             <h1>服务器优选工具</h1>
             <p>智能优选 • 一键生成</p>
@@ -1461,6 +1572,38 @@ function generateHomePage(scuValue) {
         
         // 订阅转换地址（从服务器注入）
         const SUB_CONVERTER_URL = "${ scu }";
+        const authOverlay = document.getElementById('authOverlay');
+        const appContainer = document.getElementById('appContainer');
+        const accessInput = document.getElementById('accessKey');
+        const accessSubmit = document.getElementById('accessSubmit');
+        const currentUrl = new URL(window.location.href);
+        const accessParam = currentUrl.searchParams.get('u');
+
+        function applyAccessKey() {
+            const key = accessInput.value.trim();
+            if (!key) {
+                alert('请输入访问密码');
+                return;
+            }
+            const nextUrl = new URL(window.location.href);
+            nextUrl.searchParams.set('u', key);
+            window.location.href = nextUrl.toString();
+        }
+
+        if (accessParam) {
+            authOverlay.style.display = 'none';
+            appContainer.style.display = 'block';
+        } else {
+            authOverlay.style.display = 'flex';
+            appContainer.style.display = 'none';
+        }
+
+        accessSubmit.addEventListener('click', applyAccessKey);
+        accessInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                applyAccessKey();
+            }
+        });
         
         function tryOpenApp(schemeUrl, fallbackCallback, timeout) {
             timeout = timeout || 2500;
@@ -1666,7 +1809,7 @@ export default {
         const url = new URL(request.url);
         const path = url.pathname;
         
-        if (!isAccessAllowed(url, env)) {
+        if (!isAccessAllowed(url, env, path)) {
             return new Response('Forbidden', { status: 403 });
         }
         
