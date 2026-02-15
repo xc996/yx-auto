@@ -1557,11 +1557,11 @@ function generateHomePage(scuValue) {
             
             // 添加自定义路径
             if (customPath && customPath !== '/') {
-                subscriptionUrl += `&path=${encodeURIComponent(customPath)}`;
+                subscriptionUrl += '&path=' + encodeURIComponent(customPath);
             }
             
             if (customPorts) {
-                subscriptionUrl += `&ports=${encodeURIComponent(customPorts)}`;
+                subscriptionUrl += '&ports=' + encodeURIComponent(customPorts);
             }
             
             let finalUrl = subscriptionUrl;
