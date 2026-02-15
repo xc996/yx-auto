@@ -1579,26 +1579,55 @@ function generateHomePage(scuValue) {
         const currentUrl = new URL(window.location.href);
         const accessParam = currentUrl.searchParams.get('u');
 
-        function applyAccessKey() {
+        async function fetchAuthStatus(value) {
+            const query = value ? ('?u=' + encodeURIComponent(value)) : '';
+            const response = await fetch('/auth' + query, { cache: 'no-store' });
+            if (!response.ok) return { required: true, ok: false };
+            return await response.json();
+        }
+
+        async function applyAccessKey() {
             const key = accessInput.value.trim();
             if (!key) {
                 alert('请输入访问密码');
                 return;
             }
-            const nextUrl = new URL(window.location.href);
-            nextUrl.searchParams.set('u', key);
-            window.location.href = nextUrl.toString();
+            const result = await fetchAuthStatus(key);
+            if (!result.required || result.ok) {
+                const nextUrl = new URL(window.location.href);
+                nextUrl.searchParams.set('u', key);
+                window.location.href = nextUrl.toString();
+                return;
+            }
+            alert('密码错误');
         }
 
-        if (accessParam) {
-            authOverlay.style.display = 'none';
-            appContainer.style.display = 'block';
-        } else {
+        async function initAccess() {
+            const result = await fetchAuthStatus(accessParam || '');
+            if (!result.required) {
+                authOverlay.style.display = 'none';
+                appContainer.style.display = 'block';
+                return;
+            }
+            if (result.ok) {
+                authOverlay.style.display = 'none';
+                appContainer.style.display = 'block';
+                return;
+            }
+            if (accessParam) {
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('u');
+                window.history.replaceState(null, '', cleanUrl.toString());
+            }
             authOverlay.style.display = 'flex';
             appContainer.style.display = 'none';
         }
 
-        accessSubmit.addEventListener('click', applyAccessKey);
+        initAccess();
+
+        accessSubmit.addEventListener('click', () => {
+            applyAccessKey();
+        });
         accessInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 applyAccessKey();
@@ -1808,6 +1837,18 @@ export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
         const path = url.pathname;
+        
+        if (path === '/auth') {
+            const required = env?.u;
+            const provided = url.searchParams.get('u') || '';
+            const ok = !required || provided === required;
+            return new Response(JSON.stringify({
+                required: !!required,
+                ok: ok
+            }), {
+                headers: { 'Content-Type': 'application/json; charset=utf-8' }
+            });
+        }
         
         if (!isAccessAllowed(url, env, path)) {
             return new Response('Forbidden', { status: 403 });
