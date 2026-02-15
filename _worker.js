@@ -62,6 +62,13 @@ function parseCustomPorts(value) {
     return ports;
 }
 
+function isAccessAllowed(url, env) {
+    const required = env?.u;
+    if (!required) return true;
+    const provided = url.searchParams.get('u') || '';
+    return provided === required;
+}
+
 // 获取动态IP列表（支持IPv4/IPv6和运营商筛选）
 async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile = true, ispUnicom = true, ispTelecom = true) {
     const v4Url = "https://www.wetest.vip/page/cloudflare/address_v4.html";
@@ -1527,7 +1534,12 @@ function generateHomePage(scuValue) {
             
             const currentUrl = new URL(window.location.href);
             const baseUrl = currentUrl.origin;
+            const accessParam = currentUrl.searchParams.get('u');
             let subscriptionUrl = \`\${baseUrl}/\${uuid}/sub?domain=\${encodeURIComponent(domain)}&epd=\${switches.switchDomain ? 'yes' : 'no'}&epi=\${switches.switchIP ? 'yes' : 'no'}&egi=\${switches.switchGitHub ? 'yes' : 'no'}\`;
+            
+            if (accessParam) {
+                subscriptionUrl += '&u=' + encodeURIComponent(accessParam);
+            }
             
             // 添加GitHub优选URL
             if (githubUrl) {
@@ -1653,6 +1665,10 @@ export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
         const path = url.pathname;
+        
+        if (!isAccessAllowed(url, env)) {
+            return new Response('Forbidden', { status: 403 });
+        }
         
         // 主页
         if (path === '/' || path === '') {
