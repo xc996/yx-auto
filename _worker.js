@@ -539,13 +539,13 @@ function generateLinksFromNewIPs(list, user, workerDomain, customPath = '/', ech
         const nodeName = (item.name || (item.domain || item.ip)).replace(/\s/g, '_');
         const safeIP = item.ip && item.ip.includes(':') ? `[${item.ip}]` : item.ip;
         
-        // 端口集合：包含源端口 + 自定义端口；若两者都空，使用默认端口集合
+        // 端口集合：若有自定义端口，仅使用自定义端口；否则用源端口；都没有则用默认
         const portSet = new Set();
-        if (item.port) portSet.add(item.port);
-        if (Array.isArray(customPorts) && customPorts.length > 0) {
+        if (customOverride) {
             customPorts.forEach(p => portSet.add(p));
-        }
-        if (portSet.size === 0) {
+        } else if (item.port) {
+            portSet.add(item.port);
+        } else {
             defaultHttpsPorts.forEach(p => portSet.add(p));
             defaultHttpPorts.forEach(p => portSet.add(p));
         }
