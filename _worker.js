@@ -303,9 +303,7 @@ function generateLinksFromSource(list, user, workerDomain, disableNonTLS = false
                 if (CF_HTTPS_PORTS.includes(port)) {
                     portsToGenerate.push({ port: port, tls: true });
                 } else if (CF_HTTP_PORTS.includes(port)) {
-                    if (!disableNonTLS) {
-                        portsToGenerate.push({ port: port, tls: false });
-                    }
+                    portsToGenerate.push({ port: port, tls: false });
                 } else {
                     portsToGenerate.push({ port: port, tls: true });
                 }
@@ -387,9 +385,7 @@ async function generateTrojanLinksFromSource(list, user, workerDomain, disableNo
                 if (CF_HTTPS_PORTS.includes(port)) {
                     portsToGenerate.push({ port: port, tls: true });
                 } else if (CF_HTTP_PORTS.includes(port)) {
-                    if (!disableNonTLS) {
-                        portsToGenerate.push({ port: port, tls: false });
-                    }
+                    portsToGenerate.push({ port: port, tls: false });
                 } else {
                     portsToGenerate.push({ port: port, tls: true });
                 }
@@ -538,6 +534,7 @@ function generateLinksFromNewIPs(list, user, workerDomain, customPath = '/', ech
     const wsPath = customPath || '/';
     const proto = 'vless';
     
+    const customOverride = Array.isArray(customPorts) && customPorts.length > 0;
     list.forEach(item => {
         const nodeName = (item.name || (item.domain || item.ip)).replace(/\s/g, '_');
         const safeIP = item.ip && item.ip.includes(':') ? `[${item.ip}]` : item.ip;
@@ -571,7 +568,7 @@ function generateLinksFromNewIPs(list, user, workerDomain, customPath = '/', ech
                 }
                 links.push(`${proto}://${user}@${safeIP}:${port}?${wsParams.toString()}#${encodeURIComponent(wsNodeName)}`);
             } else if (CF_HTTP_PORTS.includes(port)) {
-                if (!disableNonTLS) {
+                if (!disableNonTLS || customOverride) {
                     const wsNodeName = `${nodeName}-${port}-WS`;
                     const wsParams = new URLSearchParams({
                         encryption: 'none',
@@ -1451,7 +1448,9 @@ function generateHomePage(scuValue) {
             <div class="form-group">
                 <label>自定义端口（可选）</label>
                 <input type="text" id="customPorts" placeholder="例如: 443,2053,8443">
-                <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">逗号分隔端口列表，留空则默认 443/80</small>
+                <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">
+                    逗号分隔端口列表；填写后仅使用这些端口，忽略“仅TLS节点”，不自动添加 80/443
+                </small>
             </div>
             
             <div class="list-item" onclick="toggleSwitch('switchDomain')">
