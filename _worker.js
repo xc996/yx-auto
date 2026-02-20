@@ -1435,6 +1435,11 @@ function generateHomePage(scuValue) {
                 <input type="text" id="githubUrl" placeholder="留空则使用默认地址" style="font-size: 15px;">
                 <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">自定义优选IP列表来源URL，留空则使用默认地址</small>
             </div>
+            <div class="form-group" style="margin-top: 12px;">
+                <label>上传优选CSV（可选）</label>
+                <input type="file" id="ipFile" accept=".csv" style="font-size: 14px;">
+                <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">CSV需包含IP,Latency,Speed三列，可直接导入 result.csv</small>
+            </div>
             
             <div class="form-group" style="margin-top: 24px;">
                 <label>协议选择</label>
@@ -1624,6 +1629,47 @@ function generateHomePage(scuValue) {
         }
 
         initAccess();
+
+        function parseCsvToGithubLines(text) {
+            const lines = text.replace(/\r/g, '').split('\n').map(line => line.trim()).filter(Boolean);
+            if (!lines.length) return [];
+            const startIndex = /^ip\s*,/i.test(lines[0]) ? 1 : 0;
+            const results = [];
+            for (let i = startIndex; i < lines.length; i += 1) {
+                const parts = lines[i].split(',').map(part => part.trim());
+                const ip = parts[0];
+                if (!ip) continue;
+                const latency = parts[1] || '';
+                const speed = parts[2] || '';
+                const nameParts = [ip];
+                if (latency) nameParts.push('延迟' + latency + 'ms');
+                if (speed) nameParts.push('速度' + speed + 'Mbps');
+                const name = nameParts.join('-');
+                results.push(ip + ':443#' + name);
+            }
+            return results;
+        }
+
+        const ipFileInput = document.getElementById('ipFile');
+        const githubUrlInput = document.getElementById('githubUrl');
+        if (ipFileInput && githubUrlInput) {
+            ipFileInput.addEventListener('change', async (event) => {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                const text = await file.text();
+                const lines = parseCsvToGithubLines(text);
+                if (!lines.length) {
+                    alert('未解析到可用IP');
+                    ipFileInput.value = '';
+                    return;
+                }
+                const existing = githubUrlInput.value.trim();
+                githubUrlInput.value = existing ? (existing + '\n' + lines.join('\n')) : lines.join('\n');
+                if (!switches.switchGitHub) toggleSwitch('switchGitHub');
+                ipFileInput.value = '';
+                alert('已导入 ' + lines.length + ' 条IP');
+            });
+        }
 
         accessSubmit.addEventListener('click', () => {
             applyAccessKey();
