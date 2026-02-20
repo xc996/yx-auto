@@ -1377,6 +1377,7 @@ function generateHomePage(scuValue) {
             <div class="auth-title">访问验证</div>
             <div class="auth-subtitle">请输入访问密码后继续</div>
             <input type="password" id="accessKey" class="auth-input" placeholder="请输入密码">
+            <div id="accessTip" style="margin-top: 8px; color: #ff3b30; font-size: 13px;"></div>
             <button type="button" id="accessSubmit" class="auth-btn">进入</button>
         </div>
     </div>
@@ -1390,11 +1391,13 @@ function generateHomePage(scuValue) {
             <div class="form-group">
                 <label>域名</label>
                 <input type="text" id="domain" placeholder="请输入您的域名">
+                <div id="domainTip" style="margin-top: 6px; color: #ff3b30; font-size: 13px;"></div>
             </div>
             
             <div class="form-group">
                 <label>UUID/Password</label>
                 <input type="text" id="uuid" placeholder="请输入UUID或Password">
+                <div id="uuidTip" style="margin-top: 6px; color: #ff3b30; font-size: 13px;"></div>
             </div>
             
             <div class="form-group">
@@ -1444,6 +1447,7 @@ function generateHomePage(scuValue) {
             
             <div class="form-group" style="margin-top: 24px;">
                 <label>协议选择</label>
+                <div id="protocolTip" style="margin-top: 6px; color: #ff3b30; font-size: 13px;"></div>
                 <div style="margin-top: 8px;">
                     <div class="list-item" onclick="toggleSwitch('switchVL')">
                         <div>
@@ -1481,6 +1485,7 @@ function generateHomePage(scuValue) {
                     <button type="button" class="client-btn" onclick="generateClientLink('v2ray', 'Shadowrocket')" style="font-size: 13px;">Shadowrocket</button>
                 </div>
                 <div class="result-url" id="clientSubscriptionUrl" style="display: none; margin-top: 12px; padding: 12px; background: rgba(0, 122, 255, 0.1); border-radius: 8px; font-size: 13px; color: #007aff; word-break: break-all;"></div>
+                <div id="clientTip" style="margin-top: 8px; color: #34c759; font-size: 13px;"></div>
             </div>
             
             <div class="form-group">
@@ -1593,20 +1598,28 @@ function generateHomePage(scuValue) {
             return await response.json();
         }
 
+        function setTip(id, message, color) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = message || '';
+            if (color) el.style.color = color;
+        }
+
         async function applyAccessKey() {
             const key = accessInput.value.trim();
             if (!key) {
-                alert('请输入访问密码');
+                setTip('accessTip', '请输入访问密码', '#ff3b30');
                 return;
             }
             const result = await fetchAuthStatus(key);
             if (!result.required || result.ok) {
+                setTip('accessTip', '');
                 const nextUrl = new URL(window.location.href);
                 nextUrl.searchParams.set('u', key);
                 window.location.href = nextUrl.toString();
                 return;
             }
-            alert('密码错误');
+            setTip('accessTip', '密码错误', '#ff3b30');
         }
 
         async function initAccess() {
@@ -1662,15 +1675,20 @@ function generateHomePage(scuValue) {
                 const text = await file.text();
                 const lines = parseCsvToGithubLines(text);
                 if (!lines.length) {
-                    alert('未解析到可用IP');
+                    if (ipFileStatus) {
+                        ipFileStatus.textContent = '未解析到可用IP';
+                        ipFileStatus.style.color = '#ff3b30';
+                    }
                     ipFileInput.value = '';
                     return;
                 }
                 uploadedGithubUrl = lines.join('\\n');
-                if (ipFileStatus) ipFileStatus.textContent = '已导入 ' + lines.length + ' 条';
+                if (ipFileStatus) {
+                    ipFileStatus.textContent = '已导入 ' + lines.length + ' 条';
+                    ipFileStatus.style.color = '#34c759';
+                }
                 if (!switches.switchGitHub) toggleSwitch('switchGitHub');
                 ipFileInput.value = '';
-                alert('已导入 ' + lines.length + ' 条IP');
             });
         }
 
@@ -1733,17 +1751,22 @@ function generateHomePage(scuValue) {
             const uuid = document.getElementById('uuid').value.trim();
             const customPath = document.getElementById('customPath').value.trim() || '/';
             const customPorts = document.getElementById('customPorts').value.trim();
+            setTip('clientTip', '');
             
             if (!domain || !uuid) {
-                alert('请先填写域名和UUID/Password');
+                setTip('domainTip', domain ? '' : '请填写域名', '#ff3b30');
+                setTip('uuidTip', uuid ? '' : '请填写UUID/Password', '#ff3b30');
                 return;
             }
+            setTip('domainTip', '');
+            setTip('uuidTip', '');
             
             // 检查至少选择一个协议
             if (!switches.switchVL && !switches.switchTJ && !switches.switchVM) {
-                alert('请至少选择一个协议（VLESS、Trojan或VMess）');
+                setTip('protocolTip', '请至少选择一个协议（VLESS、Trojan或VMess）', '#ff3b30');
                 return;
             }
+            setTip('protocolTip', '');
             
             const ipv4Enabled = document.getElementById('ipv4Enabled').checked;
             const ipv6Enabled = document.getElementById('ipv6Enabled').checked;
@@ -1812,27 +1835,27 @@ function generateHomePage(scuValue) {
                 
                 if (clientName === 'V2RAY') {
                     navigator.clipboard.writeText(finalUrl).then(() => {
-                        alert(displayName + ' 订阅链接已复制');
+                        setTip('clientTip', displayName + ' 订阅链接已复制', '#34c759');
                     });
                 } else if (clientName === 'Shadowrocket') {
                     schemeUrl = 'shadowrocket://add/' + encodeURIComponent(finalUrl);
                     tryOpenApp(schemeUrl, () => {
                         navigator.clipboard.writeText(finalUrl).then(() => {
-                            alert(displayName + ' 订阅链接已复制');
+                            setTip('clientTip', displayName + ' 订阅链接已复制', '#34c759');
                         });
                     });
                 } else if (clientName === 'V2RAYNG') {
                     schemeUrl = 'v2rayng://install?url=' + encodeURIComponent(finalUrl);
                     tryOpenApp(schemeUrl, () => {
                         navigator.clipboard.writeText(finalUrl).then(() => {
-                            alert(displayName + ' 订阅链接已复制');
+                            setTip('clientTip', displayName + ' 订阅链接已复制', '#34c759');
                         });
                     });
                 } else if (clientName === 'NEKORAY') {
                     schemeUrl = 'nekoray://install-config?url=' + encodeURIComponent(finalUrl);
                     tryOpenApp(schemeUrl, () => {
                         navigator.clipboard.writeText(finalUrl).then(() => {
-                            alert(displayName + ' 订阅链接已复制');
+                            setTip('clientTip', displayName + ' 订阅链接已复制', '#34c759');
                         });
                     });
                 }
@@ -1869,12 +1892,12 @@ function generateHomePage(scuValue) {
                 if (schemeUrl) {
                     tryOpenApp(schemeUrl, () => {
                         navigator.clipboard.writeText(finalUrl).then(() => {
-                            alert(displayName + ' 订阅链接已复制');
+                            setTip('clientTip', displayName + ' 订阅链接已复制', '#34c759');
                         });
                     });
                 } else {
                     navigator.clipboard.writeText(finalUrl).then(() => {
-                        alert(displayName + ' 订阅链接已复制');
+                        setTip('clientTip', displayName + ' 订阅链接已复制', '#34c759');
                     });
                 }
             }
