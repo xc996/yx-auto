@@ -1438,6 +1438,7 @@ function generateHomePage(scuValue) {
             <div class="form-group" style="margin-top: 12px;">
                 <label>上传优选CSV（可选）</label>
                 <input type="file" id="ipFile" accept=".csv" style="font-size: 14px;">
+                <div id="ipFileStatus" style="margin-top: 8px; color: #86868b; font-size: 13px;">未导入</div>
                 <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">CSV需包含IP,Latency,Speed三列，可直接导入 result.csv</small>
             </div>
             
@@ -1558,6 +1559,7 @@ function generateHomePage(scuValue) {
             switchTLS: false,
             switchECH: false
         };
+        let uploadedGithubUrl = '';
         
         function toggleSwitch(id) {
             const switchEl = document.getElementById(id);
@@ -1652,6 +1654,7 @@ function generateHomePage(scuValue) {
 
         const ipFileInput = document.getElementById('ipFile');
         const githubUrlInput = document.getElementById('githubUrl');
+        const ipFileStatus = document.getElementById('ipFileStatus');
         if (ipFileInput && githubUrlInput) {
             ipFileInput.addEventListener('change', async (event) => {
                 const file = event.target.files && event.target.files[0];
@@ -1663,8 +1666,8 @@ function generateHomePage(scuValue) {
                     ipFileInput.value = '';
                     return;
                 }
-                const existing = githubUrlInput.value.trim();
-                githubUrlInput.value = existing ? (existing + '\\n' + lines.join('\\n')) : lines.join('\\n');
+                uploadedGithubUrl = lines.join('\\n');
+                if (ipFileStatus) ipFileStatus.textContent = '已导入 ' + lines.length + ' 条';
                 if (!switches.switchGitHub) toggleSwitch('switchGitHub');
                 ipFileInput.value = '';
                 alert('已导入 ' + lines.length + ' 条IP');
@@ -1748,7 +1751,10 @@ function generateHomePage(scuValue) {
             const ispUnicom = document.getElementById('ispUnicom').checked;
             const ispTelecom = document.getElementById('ispTelecom').checked;
             
-            const githubUrl = document.getElementById('githubUrl').value.trim();
+            const githubUrlInputValue = document.getElementById('githubUrl').value.trim();
+            const githubUrl = uploadedGithubUrl
+                ? (githubUrlInputValue ? (githubUrlInputValue + '\\n' + uploadedGithubUrl) : uploadedGithubUrl)
+                : githubUrlInputValue;
             
             const currentUrl = new URL(window.location.href);
             const baseUrl = currentUrl.origin;
