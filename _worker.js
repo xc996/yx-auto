@@ -532,32 +532,78 @@ function generateVMessLinksFromSource(list, user, workerDomain, disableNonTLS = 
     return links;
 }
 
-// 从GitHub IP生成链接（VLESS）
-function generateLinksFromNewIPs(list, user, workerDomain, customPath = '/', echConfig = null) {
+// 从GitHub/IP列表生成链接（VLESS，支持自定义端口与仅TLS）
+function generateLinksFromNewIPs(list, user, workerDomain, customPath = '/', echConfig = null, disableNonTLS = false, customPorts = []) {
     const CF_HTTP_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095];
     const CF_HTTPS_PORTS = [443, 2053, 2083, 2087, 2096, 8443];
+    const defaultHttpsPorts = [443];
+    const defaultHttpPorts = disableNonTLS ? [] : [80];
     const links = [];
     const wsPath = customPath || '/';
     const proto = 'vless';
-    const echSuffix = echConfig ? `&alpn=h3%2Ch2%2Chttp%2F1.1&ech=${encodeURIComponent(echConfig)}` : '';
     
     list.forEach(item => {
-        const nodeName = item.name.replace(/\s/g, '_');
-        const port = item.port;
+        const nodeName = (item.name || (item.domain || item.ip)).replace(/\s/g, '_');
+        const safeIP = item.ip && item.ip.includes(':') ? `[${item.ip}]` : item.ip;
         
-        if (CF_HTTPS_PORTS.includes(port)) {
-            const wsNodeName = `${nodeName}-${port}-WS-TLS`;
-            const link = `${proto}://${user}@${item.ip}:${port}?encryption=none&security=tls&sni=${workerDomain}&fp=chrome&type=ws&host=${workerDomain}&path=${wsPath}${echSuffix}#${encodeURIComponent(wsNodeName)}`;
-            links.push(link);
-        } else if (CF_HTTP_PORTS.includes(port)) {
-            const wsNodeName = `${nodeName}-${port}-WS`;
-            const link = `${proto}://${user}@${item.ip}:${port}?encryption=none&security=none&type=ws&host=${workerDomain}&path=${wsPath}#${encodeURIComponent(wsNodeName)}`;
-            links.push(link);
-        } else {
-            const wsNodeName = `${nodeName}-${port}-WS-TLS`;
-            const link = `${proto}://${user}@${item.ip}:${port}?encryption=none&security=tls&sni=${workerDomain}&fp=chrome&type=ws&host=${workerDomain}&path=${wsPath}${echSuffix}#${encodeURIComponent(wsNodeName)}`;
-            links.push(link);
+        // 端口集合：包含源端口 + 自定义端口；若两者都空，使用默认端口集合
+        const portSet = new Set();
+        if (item.port) portSet.add(item.port);
+        if (Array.isArray(customPorts) && customPorts.length > 0) {
+            customPorts.forEach(p => portSet.add(p));
         }
+        if (portSet.size === 0) {
+            defaultHttpsPorts.forEach(p => portSet.add(p));
+            defaultHttpPorts.forEach(p => portSet.add(p));
+        }
+        
+        Array.from(portSet).forEach(port => {
+            if (CF_HTTPS_PORTS.includes(port)) {
+                const wsNodeName = `${nodeName}-${port}-WS-TLS`;
+                const wsParams = new URLSearchParams({ 
+                    encryption: 'none', 
+                    security: 'tls', 
+                    sni: workerDomain, 
+                    fp: 'chrome', 
+                    type: 'ws', 
+                    host: workerDomain, 
+                    path: wsPath
+                });
+                if (echConfig) {
+                    wsParams.set('alpn', 'h3,h2,http/1.1');
+                    wsParams.set('ech', echConfig);
+                }
+                links.push(`${proto}://${user}@${safeIP}:${port}?${wsParams.toString()}#${encodeURIComponent(wsNodeName)}`);
+            } else if (CF_HTTP_PORTS.includes(port)) {
+                if (!disableNonTLS) {
+                    const wsNodeName = `${nodeName}-${port}-WS`;
+                    const wsParams = new URLSearchParams({
+                        encryption: 'none',
+                        security: 'none',
+                        type: 'ws',
+                        host: workerDomain,
+                        path: wsPath
+                    });
+                    links.push(`${proto}://${user}@${safeIP}:${port}?${wsParams.toString()}#${encodeURIComponent(wsNodeName)}`);
+                }
+            } else {
+                const wsNodeName = `${nodeName}-${port}-WS-TLS`;
+                const wsParams = new URLSearchParams({ 
+                    encryption: 'none', 
+                    security: 'tls', 
+                    sni: workerDomain, 
+                    fp: 'chrome', 
+                    type: 'ws', 
+                    host: workerDomain, 
+                    path: wsPath
+                });
+                if (echConfig) {
+                    wsParams.set('alpn', 'h3,h2,http/1.1');
+                    wsParams.set('ech', echConfig);
+                }
+                links.push(`${proto}://${user}@${safeIP}:${port}?${wsParams.toString()}#${encodeURIComponent(wsNodeName)}`);
+            }
+        });
     });
     return links;
 }
@@ -641,7 +687,7 @@ async function handleSubscriptionRequest(request, user, customDomain, piu, ipv4E
                         const useVL = hasProtocol ? evEnabled : true;
                         
                         if (useVL) {
-                            finalLinks.push(...generateLinksFromNewIPs(IP列表, user, nodeDomain, wsPath, echConfig));
+                            finalLinks.push(...generateLinksFromNewIPs(IP列表, user, nodeDomain, wsPath, echConfig, disableNonTLS, customPorts));
                         }
                     }
                 }
@@ -690,7 +736,7 @@ async function handleSubscriptionRequest(request, user, customDomain, piu, ipv4E
                         const useVL = hasProtocol ? evEnabled : true;
                         
                         if (useVL) {
-                            finalLinks.push(...generateLinksFromNewIPs(IP列表, user, nodeDomain, wsPath, echConfig));
+                            finalLinks.push(...generateLinksFromNewIPs(IP列表, user, nodeDomain, wsPath, echConfig, disableNonTLS, customPorts));
                         }
                     }
                 }
@@ -702,7 +748,7 @@ async function handleSubscriptionRequest(request, user, customDomain, piu, ipv4E
                     const useVL = hasProtocol ? evEnabled : true;
                     
                     if (useVL) {
-                        finalLinks.push(...generateLinksFromNewIPs(newIPList, user, nodeDomain, wsPath, echConfig));
+                        finalLinks.push(...generateLinksFromNewIPs(newIPList, user, nodeDomain, wsPath, echConfig, disableNonTLS, customPorts));
                     }
                 }
             }
