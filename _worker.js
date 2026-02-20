@@ -1631,9 +1631,9 @@ function generateHomePage(scuValue) {
         initAccess();
 
         function parseCsvToGithubLines(text) {
-            const lines = text.replace(/\r/g, '').split('\n').map(line => line.trim()).filter(Boolean);
+            const lines = text.replace(/\\r/g, '').split('\\n').map(line => line.trim()).filter(Boolean);
             if (!lines.length) return [];
-            const startIndex = /^ip\s*,/i.test(lines[0]) ? 1 : 0;
+            const startIndex = /^ip\\s*,/i.test(lines[0]) ? 1 : 0;
             const results = [];
             for (let i = startIndex; i < lines.length; i += 1) {
                 const parts = lines[i].split(',').map(part => part.trim());
@@ -1664,7 +1664,7 @@ function generateHomePage(scuValue) {
                     return;
                 }
                 const existing = githubUrlInput.value.trim();
-                githubUrlInput.value = existing ? (existing + '\n' + lines.join('\n')) : lines.join('\n');
+                githubUrlInput.value = existing ? (existing + '\\n' + lines.join('\\n')) : lines.join('\\n');
                 if (!switches.switchGitHub) toggleSwitch('switchGitHub');
                 ipFileInput.value = '';
                 alert('已导入 ' + lines.length + ' 条IP');
