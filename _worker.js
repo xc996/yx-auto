@@ -298,36 +298,36 @@ function generateLinksFromSource(list, user, workerDomain, disableNonTLS = false
         
         let portsToGenerate = [];
         
-        if (item.port) {
+        if (Array.isArray(customPorts) && customPorts.length > 0) {
+            customPorts.forEach(port => {
+                if (CF_HTTPS_PORTS.includes(port)) {
+                    portsToGenerate.push({ port: port, tls: true });
+                } else if (CF_HTTP_PORTS.includes(port)) {
+                    if (!disableNonTLS) {
+                        portsToGenerate.push({ port: port, tls: false });
+                    }
+                } else {
+                    portsToGenerate.push({ port: port, tls: true });
+                }
+            });
+        } else if (item.port) {
             const port = item.port;
             if (CF_HTTPS_PORTS.includes(port)) {
                 portsToGenerate.push({ port: port, tls: true });
             } else if (CF_HTTP_PORTS.includes(port)) {
-                portsToGenerate.push({ port: port, tls: false });
+                if (!disableNonTLS) {
+                    portsToGenerate.push({ port: port, tls: false });
+                }
             } else {
                 portsToGenerate.push({ port: port, tls: true });
             }
         } else {
-            if (customPorts.length > 0) {
-                customPorts.forEach(port => {
-                    if (CF_HTTPS_PORTS.includes(port)) {
-                        portsToGenerate.push({ port: port, tls: true });
-                    } else if (CF_HTTP_PORTS.includes(port)) {
-                        if (!disableNonTLS) {
-                            portsToGenerate.push({ port: port, tls: false });
-                        }
-                    } else {
-                        portsToGenerate.push({ port: port, tls: true });
-                    }
-                });
-            } else {
-                defaultHttpsPorts.forEach(port => {
-                    portsToGenerate.push({ port: port, tls: true });
-                });
-                defaultHttpPorts.forEach(port => {
-                    portsToGenerate.push({ port: port, tls: false });
-                });
-            }
+            defaultHttpsPorts.forEach(port => {
+                portsToGenerate.push({ port: port, tls: true });
+            });
+            defaultHttpPorts.forEach(port => {
+                portsToGenerate.push({ port: port, tls: false });
+            });
         }
 
         portsToGenerate.forEach(({ port, tls }) => {
@@ -382,7 +382,19 @@ async function generateTrojanLinksFromSource(list, user, workerDomain, disableNo
         
         let portsToGenerate = [];
         
-        if (item.port) {
+        if (Array.isArray(customPorts) && customPorts.length > 0) {
+            customPorts.forEach(port => {
+                if (CF_HTTPS_PORTS.includes(port)) {
+                    portsToGenerate.push({ port: port, tls: true });
+                } else if (CF_HTTP_PORTS.includes(port)) {
+                    if (!disableNonTLS) {
+                        portsToGenerate.push({ port: port, tls: false });
+                    }
+                } else {
+                    portsToGenerate.push({ port: port, tls: true });
+                }
+            });
+        } else if (item.port) {
             const port = item.port;
             if (CF_HTTPS_PORTS.includes(port)) {
                 portsToGenerate.push({ port: port, tls: true });
@@ -394,26 +406,12 @@ async function generateTrojanLinksFromSource(list, user, workerDomain, disableNo
                 portsToGenerate.push({ port: port, tls: true });
             }
         } else {
-            if (customPorts.length > 0) {
-                customPorts.forEach(port => {
-                    if (CF_HTTPS_PORTS.includes(port)) {
-                        portsToGenerate.push({ port: port, tls: true });
-                    } else if (CF_HTTP_PORTS.includes(port)) {
-                        if (!disableNonTLS) {
-                            portsToGenerate.push({ port: port, tls: false });
-                        }
-                    } else {
-                        portsToGenerate.push({ port: port, tls: true });
-                    }
-                });
-            } else {
-                defaultHttpsPorts.forEach(port => {
-                    portsToGenerate.push({ port: port, tls: true });
-                });
-                defaultHttpPorts.forEach(port => {
-                    portsToGenerate.push({ port: port, tls: false });
-                });
-            }
+            defaultHttpsPorts.forEach(port => {
+                portsToGenerate.push({ port: port, tls: true });
+            });
+            defaultHttpPorts.forEach(port => {
+                portsToGenerate.push({ port: port, tls: false });
+            });
         }
 
         portsToGenerate.forEach(({ port, tls }) => {
@@ -465,7 +463,19 @@ function generateVMessLinksFromSource(list, user, workerDomain, disableNonTLS = 
         
         let portsToGenerate = [];
         
-        if (item.port) {
+        if (Array.isArray(customPorts) && customPorts.length > 0) {
+            customPorts.forEach(port => {
+                if (CF_HTTPS_PORTS.includes(port)) {
+                    portsToGenerate.push({ port: port, tls: true });
+                } else if (CF_HTTP_PORTS.includes(port)) {
+                    if (!disableNonTLS) {
+                        portsToGenerate.push({ port: port, tls: false });
+                    }
+                } else {
+                    portsToGenerate.push({ port: port, tls: true });
+                }
+            });
+        } else if (item.port) {
             const port = item.port;
             if (CF_HTTPS_PORTS.includes(port)) {
                 portsToGenerate.push({ port: port, tls: true });
@@ -477,26 +487,12 @@ function generateVMessLinksFromSource(list, user, workerDomain, disableNonTLS = 
                 portsToGenerate.push({ port: port, tls: true });
             }
         } else {
-            if (customPorts.length > 0) {
-                customPorts.forEach(port => {
-                    if (CF_HTTPS_PORTS.includes(port)) {
-                        portsToGenerate.push({ port: port, tls: true });
-                    } else if (CF_HTTP_PORTS.includes(port)) {
-                        if (!disableNonTLS) {
-                            portsToGenerate.push({ port: port, tls: false });
-                        }
-                    } else {
-                        portsToGenerate.push({ port: port, tls: true });
-                    }
-                });
-            } else {
-                defaultHttpsPorts.forEach(port => {
-                    portsToGenerate.push({ port: port, tls: true });
-                });
-                defaultHttpPorts.forEach(port => {
-                    portsToGenerate.push({ port: port, tls: false });
-                });
-            }
+            defaultHttpsPorts.forEach(port => {
+                portsToGenerate.push({ port: port, tls: true });
+            });
+            defaultHttpPorts.forEach(port => {
+                portsToGenerate.push({ port: port, tls: false });
+            });
         }
 
         portsToGenerate.forEach(({ port, tls }) => {
