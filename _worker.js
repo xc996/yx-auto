@@ -89,6 +89,72 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
             fetchPromises.push(Promise.resolve([]));
         }
 
+        function saveState() {
+            try {
+                const state = {
+                    domain: document.getElementById('domain').value.trim(),
+                    uuid: document.getElementById('uuid').value.trim(),
+                    customPath: document.getElementById('customPath').value.trim(),
+                    customPorts: document.getElementById('customPorts').value.trim(),
+                    githubUrl: document.getElementById('githubUrl').value.trim(),
+                    switches: switches,
+                    uploadedGithubUrl: uploadedGithubUrl
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        function restoreSwitchUI() {
+            Object.keys(switches).forEach(k => {
+                const el = document.getElementById(k);
+                if (!el) return;
+                if (switches[k]) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+            const echOpt = document.getElementById('echOptionsGroup');
+            if (echOpt) echOpt.style.display = switches.switchECH ? 'block' : 'none';
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const st = JSON.parse(raw);
+                if (st.domain) document.getElementById('domain').value = st.domain;
+                if (st.uuid) document.getElementById('uuid').value = st.uuid;
+                if (st.customPath) document.getElementById('customPath').value = st.customPath;
+                if (st.customPorts) document.getElementById('customPorts').value = st.customPorts;
+                if (st.githubUrl) document.getElementById('githubUrl').value = st.githubUrl;
+                if (st.uploadedGithubUrl) {
+                    uploadedGithubUrl = st.uploadedGithubUrl;
+                    if (ipFileStatus) {
+                        const count = uploadedGithubUrl.split('\\n').filter(Boolean).length;
+                        ipFileStatus.textContent = '已导入 ' + count + ' 条';
+                        ipFileStatus.style.color = '#34c759';
+                    }
+                    if (ipFilePreview) {
+                        const preview = uploadedGithubUrl.split('\\n').slice(0, 3).join('\\n');
+                        ipFilePreview.textContent = preview;
+                        ipFilePreview.style.display = preview ? 'block' : 'none';
+                    }
+                }
+                if (st.switches) {
+                    switches = Object.assign({}, switches, st.switches);
+                    restoreSwitchUI();
+                }
+            } catch (e) {}
+        }
+
+        ['domain','uuid','customPath','customPorts','githubUrl'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', saveState);
+        });
+
+        loadState();
+
         const [ipv4List, ipv6List] = await Promise.all(fetchPromises);
         results = [...ipv4List, ...ipv6List];
         
@@ -1483,6 +1549,8 @@ function generateHomePage(scuValue) {
                 <label>导入CSV（可选）</label>
                 <input type="file" id="ipFile" accept=".csv" style="font-size: 14px;">
                 <div id="ipFileStatus" style="margin-top: 8px; color: #86868b; font-size: 13px;">未导入</div>
+                <div id="ipFilePreview" style="margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: rgba(118,118,128,0.08); color: #6b6b6f; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; display: none;"></div>
+                <button type="button" id="clearCsvBtn" style="margin-top: 6px; padding: 6px 10px; font-size: 12px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); background: transparent; color: #86868b; cursor: pointer;">清除导入</button>
                 <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">包含 IP,Latency,Speed 三列，可直接导入 result.csv</small>
             </div>
             
@@ -1606,6 +1674,7 @@ function generateHomePage(scuValue) {
             switchECH: false
         };
         let uploadedGithubUrl = '';
+        const STORAGE_KEY = 'yx_auto_state_v1';
         
         function toggleSwitch(id) {
             const switchEl = document.getElementById(id);
@@ -1686,20 +1755,42 @@ function generateHomePage(scuValue) {
 
         initAccess();
 
+        function formatSpeedToMBps(val) {
+            if (!val) return '';
+            const s = String(val).trim();
+            let num = parseFloat(s.replace(/[^\d.]/g, ''));
+            if (!isFinite(num)) return '';
+            const lower = s.toLowerCase();
+            const isMBps = lower.includes('mb/s') || lower.includes('mib/s');
+            const mbpsHint = lower.includes('mbps');
+            if (!isMBps) {
+                if (mbpsHint || true) {
+                    num = num / 8;
+                }
+            }
+            return (Math.round(num * 100) / 100).toFixed(2);
+        }
+
         function parseCsvToGithubLines(text) {
             const lines = text.replace(/\\r/g, '').split('\\n').map(line => line.trim()).filter(Boolean);
             if (!lines.length) return [];
             const startIndex = /^ip\\s*,/i.test(lines[0]) ? 1 : 0;
             const results = [];
+            const seen = new Set();
             for (let i = startIndex; i < lines.length; i += 1) {
                 const parts = lines[i].split(',').map(part => part.trim());
                 const ip = parts[0];
                 if (!ip) continue;
                 const latency = parts[1] || '';
                 const speed = parts[2] || '';
+                if (seen.has(ip)) continue;
+                seen.add(ip);
                 const nameParts = ['CSV', ip];
-                if (latency) nameParts.push('延迟' + latency + 'ms');
-                if (speed) nameParts.push('速度' + speed + 'MB/s');
+                if (latency) nameParts.push('L' + latency + 'ms');
+                if (speed) {
+                    const v = formatSpeedToMBps(speed);
+                    if (v) nameParts.push('V' + v + 'MB/s');
+                }
                 const name = nameParts.join('-');
                 results.push(ip + ':443#' + name);
             }
@@ -1709,6 +1800,8 @@ function generateHomePage(scuValue) {
         const ipFileInput = document.getElementById('ipFile');
         const githubUrlInput = document.getElementById('githubUrl');
         const ipFileStatus = document.getElementById('ipFileStatus');
+        const ipFilePreview = document.getElementById('ipFilePreview');
+        const clearCsvBtn = document.getElementById('clearCsvBtn');
         if (ipFileInput && githubUrlInput) {
             ipFileInput.addEventListener('change', async (event) => {
                 const file = event.target.files && event.target.files[0];
@@ -1720,6 +1813,10 @@ function generateHomePage(scuValue) {
                         ipFileStatus.textContent = '未解析到可用IP';
                         ipFileStatus.style.color = '#ff3b30';
                     }
+                    if (ipFilePreview) {
+                        ipFilePreview.style.display = 'none';
+                        ipFilePreview.textContent = '';
+                    }
                     ipFileInput.value = '';
                     return;
                 }
@@ -1728,9 +1825,29 @@ function generateHomePage(scuValue) {
                     ipFileStatus.textContent = '已导入 ' + lines.length + ' 条';
                     ipFileStatus.style.color = '#34c759';
                 }
+                if (ipFilePreview) {
+                    const preview = lines.slice(0, 3).join('\\n');
+                    ipFilePreview.textContent = preview;
+                    ipFilePreview.style.display = 'block';
+                }
                 if (!switches.switchGitHub) toggleSwitch('switchGitHub');
                 ipFileInput.value = '';
+                saveState();
             });
+            if (clearCsvBtn) {
+                clearCsvBtn.addEventListener('click', () => {
+                    uploadedGithubUrl = '';
+                    if (ipFileStatus) {
+                        ipFileStatus.textContent = '已清除';
+                        ipFileStatus.style.color = '#86868b';
+                    }
+                    if (ipFilePreview) {
+                        ipFilePreview.style.display = 'none';
+                        ipFilePreview.textContent = '';
+                    }
+                    saveState();
+                });
+            }
         }
 
         accessSubmit.addEventListener('click', () => {
