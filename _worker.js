@@ -116,6 +116,12 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
             });
             const echOpt = document.getElementById('echOptionsGroup');
             if (echOpt) echOpt.style.display = switches.switchECH ? 'block' : 'none';
+            if (switches.switchECH && !switches.switchTLS) {
+                // 强制仅TLS以匹配 ECH 依赖
+                switches.switchTLS = true;
+                const tlsEl = document.getElementById('switchTLS');
+                if (tlsEl) tlsEl.classList.add('active');
+            }
         }
 
         function loadState() {
@@ -1690,6 +1696,7 @@ function generateHomePage(scuValue) {
                     if (tlsEl) tlsEl.classList.add('active');
                 }
             }
+            saveState();
         }
         
         
