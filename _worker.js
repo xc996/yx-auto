@@ -164,7 +164,11 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
 
         ['domain','uuid','customPath','customPorts','githubUrl'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('input', saveState);
+            if (el) {
+                el.addEventListener('input', saveState);
+                el.addEventListener('change', saveState);
+                el.addEventListener('blur', saveState);
+            }
         });
         ['ipv4Enabled','ipv6Enabled','ispMobile','ispUnicom','ispTelecom'].forEach(id => {
             const el = document.getElementById(id);
@@ -172,7 +176,15 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
         });
         ['customDNS','customECHDomain'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('input', saveState);
+            if (el) {
+                el.addEventListener('input', saveState);
+                el.addEventListener('change', saveState);
+                el.addEventListener('blur', saveState);
+            }
+        });
+        window.addEventListener('beforeunload', saveState);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') saveState();
         });
 
         loadState();
