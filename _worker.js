@@ -241,7 +241,7 @@ async function 请求优选API(urls, 默认端口 = '443', 超时时间 = 3000) 
                     dataLines.forEach(line => {
                         const cols = line.split(',').map(c => c.trim());
                         const wrappedIP = IPV6_PATTERN.test(cols[ipIdx]) ? `[${cols[ipIdx]}]` : cols[ipIdx];
-                        results.add(`${wrappedIP}:${port}#CF优选 ${cols[delayIdx]}ms ${cols[speedIdx]}MBps`);
+                        results.add(`${wrappedIP}:${port}#CF优选 ${cols[delayIdx]}ms ${cols[speedIdx]}MB/s`);
                     });
                 }
             }
@@ -1797,13 +1797,14 @@ function generateHomePage(scuValue) {
             const lower = s.toLowerCase();
             const hasLetters = /[a-z]/i.test(lower);
             const isMbps = lower.includes('mbps') || lower.includes('mibps') || lower.includes('mbit/s');
-            const isMBps = lower.includes('mb/s') || lower.includes('mib/s') || lower.includes('mbpss'); // 保留为字节单位
+            const isMBps = lower.includes('mb/s') || lower.includes('mib/s'); // 保留为字节单位
             const isKBps = lower.includes('kb/s') || lower.includes('kbps');
             if (isKBps) num = num / 1024;
-            else if (isMbps || !hasLetters) num = num / 8; // 无单位默认按 Mbps 处理
-            else if (isMBps) { /* 已是 MBps 单位，保持 */ }
+            else if (isMbps) num = num / 8;
+            else if (!hasLetters) { /* 无单位保持数值本身，视为MB/s，不再÷8 */ }
+            else if (isMBps) { /* 已是 MB/s 单位，保持 */ }
             const out = (Math.round(num * 100) / 100).toFixed(2);
-            try { console.debug('[CSV] formatSpeedToMBps', s, '=>', out, 'MBps'); } catch (e) {}
+            try { console.debug('[CSV] formatSpeedToMBps', s, '=>', out, 'MB/s'); } catch (e) {}
             return out;
         }
 
@@ -1866,8 +1867,8 @@ function generateHomePage(scuValue) {
                 if (!v) {
                     const n = parseFloat(String(speedRaw).replace(/[^\d.]/g, ''));
                     if (isFinite(n) && n > 0) {
-                        v = (Math.round((n / 8) * 100) / 100).toFixed(2);
-                        try { console.debug('[CSV] v-fallback(Mbps->MBps)', i, speedRaw, '=>', v); } catch (e) {}
+                        v = (Math.round((n) * 100) / 100).toFixed(2);
+                        try { console.log('[CSV] v-fallback(use as MB/s)', i, speedRaw, '=>', v); } catch (e) {}
                     }
                 }
                 if (i - startIndex < 5) { try { console.debug('[CSV] row', i, { ip, latency, speedRaw, v }); } catch (e) {} }
@@ -1890,7 +1891,7 @@ function generateHomePage(scuValue) {
             for (const [ip, info] of mapByIp.entries()) {
                 const nameParts = ['CSV', ip];
                 if (info.latency) nameParts.push('延迟' + info.latency + 'ms');
-                if (info.v) nameParts.push('速度' + info.v + 'MBps');
+                if (info.v) nameParts.push('速度' + info.v + 'MB/s');
                 if (info.v) withSpeed++;
                 const name = nameParts.join('-');
                 results.push(ip + ':443#' + name);
