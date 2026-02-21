@@ -1862,7 +1862,14 @@ function generateHomePage(scuValue) {
                 const latency = (parts[latencyIdx] || '').trim();
                 let speedRaw = (parts[speedIdx] || '').trim();
                 if (!speedRaw) speedRaw = detectSpeedFromParts(parts);
-                const v = formatSpeedToMBps(speedRaw);
+                let v = formatSpeedToMBps(speedRaw);
+                if (!v) {
+                    const n = parseFloat(String(speedRaw).replace(/[^\d.]/g, ''));
+                    if (isFinite(n) && n > 0) {
+                        v = (Math.round((n / 8) * 100) / 100).toFixed(2);
+                        try { console.debug('[CSV] v-fallback(Mbps->MBps)', i, speedRaw, '=>', v); } catch (e) {}
+                    }
+                }
                 if (i - startIndex < 5) { try { console.debug('[CSV] row', i, { ip, latency, speedRaw, v }); } catch (e) {} }
                 const vNum = v ? parseFloat(v) : 0;
                 const prev = mapByIp.get(ip);
