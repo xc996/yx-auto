@@ -1795,27 +1795,42 @@ function generateHomePage(scuValue) {
             let num = parseFloat(s.replace(/[^\d.]/g, ''));
             if (!isFinite(num)) return '';
             const lower = s.toLowerCase();
-            const isMBps = lower.includes('mb/s') || lower.includes('mib/s');
-            const mbpsHint = lower.includes('mbps');
-            if (!isMBps) {
-                if (mbpsHint || true) {
-                    num = num / 8;
-                }
-            }
+            const isMbps = lower.includes('mbps') || lower.includes('mibps') || lower.includes('mbit/s');
+            const isKBps = lower.includes('kb/s') || lower.includes('kbps');
+            // 若是 Mbps，则换算为 MBps；若是 KB/s，则换算为 MBps；无单位默认按 MBps 处理
+            if (isMbps) num = num / 8;
+            if (isKBps) num = num / 1024;
             return (Math.round(num * 100) / 100).toFixed(2);
         }
 
         function parseCsvToGithubLines(text) {
             const lines = text.replace(/\\r/g, '').split('\\n').map(line => line.trim()).filter(Boolean);
             if (!lines.length) return [];
-            const startIndex = /^ip\\s*,/i.test(lines[0]) ? 1 : 0;
+            // 表头自适应（兼容 IP/IP地址/优选地址 等；延迟/Latency；下载速度/Speed 等）
+            const headers = lines[0].split(',').map(h => h.trim());
+            const lowerHeaders = headers.map(h => h.toLowerCase());
+            const findIdx = (preds) => {
+                for (let i = 0; i < lowerHeaders.length; i++) {
+                    const h = lowerHeaders[i];
+                    if (preds.some(p => h.includes(p))) return i;
+                }
+                return -1;
+            };
+            let ipIdx = findIdx(['ip地址', 'ip', '优选地址', 'host', '地址']);
+            let latencyIdx = findIdx(['延迟', 'latency', 'rtt', 'ping']);
+            let speedIdx = findIdx(['下载速度', 'speed', '带宽', '吞吐', 'mb/s', 'mbps']);
+            let startIndex = 0;
+            if (ipIdx !== -1) startIndex = 1;
+            if (ipIdx === -1) ipIdx = 0;
+            if (latencyIdx === -1) latencyIdx = 1;
+            if (speedIdx === -1) speedIdx = 2;
             const mapByIp = new Map();
             for (let i = startIndex; i < lines.length; i += 1) {
                 const parts = lines[i].split(',').map(part => part.trim());
-                const ip = parts[0];
-                if (!ip) continue;
-                const latency = (parts[1] || '').trim();
-                const speedRaw = (parts[2] || '').trim();
+                const ip = parts[ipIdx];
+                if (!ip || /ip地址/i.test(ip)) continue;
+                const latency = (parts[latencyIdx] || '').trim();
+                const speedRaw = (parts[speedIdx] || '').trim();
                 const v = formatSpeedToMBps(speedRaw);
                 const vNum = v ? parseFloat(v) : 0;
                 const prev = mapByIp.get(ip);
