@@ -97,6 +97,13 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
                     customPath: document.getElementById('customPath').value.trim(),
                     customPorts: document.getElementById('customPorts').value.trim(),
                     githubUrl: document.getElementById('githubUrl').value.trim(),
+                    ipv4Enabled: document.getElementById('ipv4Enabled') ? document.getElementById('ipv4Enabled').checked : undefined,
+                    ipv6Enabled: document.getElementById('ipv6Enabled') ? document.getElementById('ipv6Enabled').checked : undefined,
+                    ispMobile: document.getElementById('ispMobile') ? document.getElementById('ispMobile').checked : undefined,
+                    ispUnicom: document.getElementById('ispUnicom') ? document.getElementById('ispUnicom').checked : undefined,
+                    ispTelecom: document.getElementById('ispTelecom') ? document.getElementById('ispTelecom').checked : undefined,
+                    customDNS: document.getElementById('customDNS') ? document.getElementById('customDNS').value.trim() : '',
+                    customECHDomain: document.getElementById('customECHDomain') ? document.getElementById('customECHDomain').value.trim() : '',
                     switches: switches,
                     uploadedGithubUrl: uploadedGithubUrl
                 };
@@ -134,6 +141,13 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
                 if (st.customPath) document.getElementById('customPath').value = st.customPath;
                 if (st.customPorts) document.getElementById('customPorts').value = st.customPorts;
                 if (st.githubUrl) document.getElementById('githubUrl').value = st.githubUrl;
+                if (typeof st.ipv4Enabled === 'boolean' && document.getElementById('ipv4Enabled')) document.getElementById('ipv4Enabled').checked = st.ipv4Enabled;
+                if (typeof st.ipv6Enabled === 'boolean' && document.getElementById('ipv6Enabled')) document.getElementById('ipv6Enabled').checked = st.ipv6Enabled;
+                if (typeof st.ispMobile === 'boolean' && document.getElementById('ispMobile')) document.getElementById('ispMobile').checked = st.ispMobile;
+                if (typeof st.ispUnicom === 'boolean' && document.getElementById('ispUnicom')) document.getElementById('ispUnicom').checked = st.ispUnicom;
+                if (typeof st.ispTelecom === 'boolean' && document.getElementById('ispTelecom')) document.getElementById('ispTelecom').checked = st.ispTelecom;
+                if (st.customDNS && document.getElementById('customDNS')) document.getElementById('customDNS').value = st.customDNS;
+                if (st.customECHDomain && document.getElementById('customECHDomain')) document.getElementById('customECHDomain').value = st.customECHDomain;
                 if (st.uploadedGithubUrl) {
                     uploadedGithubUrl = st.uploadedGithubUrl;
                     if (ipFileStatus) {
@@ -155,6 +169,14 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
         }
 
         ['domain','uuid','customPath','customPorts','githubUrl'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', saveState);
+        });
+        ['ipv4Enabled','ipv6Enabled','ispMobile','ispUnicom','ispTelecom'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', saveState);
+        });
+        ['customDNS','customECHDomain'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', saveState);
         });
@@ -1783,22 +1805,33 @@ function generateHomePage(scuValue) {
             const lines = text.replace(/\\r/g, '').split('\\n').map(line => line.trim()).filter(Boolean);
             if (!lines.length) return [];
             const startIndex = /^ip\\s*,/i.test(lines[0]) ? 1 : 0;
-            const results = [];
-            const seen = new Set();
+            const mapByIp = new Map();
             for (let i = startIndex; i < lines.length; i += 1) {
                 const parts = lines[i].split(',').map(part => part.trim());
                 const ip = parts[0];
                 if (!ip) continue;
-                const latency = parts[1] || '';
-                const speed = parts[2] || '';
-                if (seen.has(ip)) continue;
-                seen.add(ip);
-                const nameParts = ['CSV', ip];
-                if (latency) nameParts.push('延迟' + latency + 'ms');
-                if (speed) {
-                    const v = formatSpeedToMBps(speed);
-                    if (v) nameParts.push('速度' + v + 'MB/s');
+                const latency = (parts[1] || '').trim();
+                const speedRaw = (parts[2] || '').trim();
+                const v = formatSpeedToMBps(speedRaw);
+                const vNum = v ? parseFloat(v) : 0;
+                const prev = mapByIp.get(ip);
+                if (!prev) {
+                    mapByIp.set(ip, { latency, v, vNum });
+                } else {
+                    // 选择更优：优先有速度的；若两者都有速度，取更大速度；若都无速度，保持原值
+                    const prevNum = prev.v ? parseFloat(prev.v) : 0;
+                    if ((vNum > 0 && prevNum === 0) || (vNum > prevNum)) {
+                        mapByIp.set(ip, { latency: latency || prev.latency, v, vNum });
+                    } else if (!prev.v && !v && latency && !prev.latency) {
+                        mapByIp.set(ip, { latency, v: '', vNum: 0 });
+                    }
                 }
+            }
+            const results = [];
+            for (const [ip, info] of mapByIp.entries()) {
+                const nameParts = ['CSV', ip];
+                if (info.latency) nameParts.push('延迟' + info.latency + 'ms');
+                if (info.v) nameParts.push('速度' + info.v + 'MB/s');
                 const name = nameParts.join('-');
                 results.push(ip + ':443#' + name);
             }
