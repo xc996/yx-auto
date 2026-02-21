@@ -1795,11 +1795,13 @@ function generateHomePage(scuValue) {
             let num = parseFloat(s.replace(/[^\d.]/g, ''));
             if (!isFinite(num)) return '';
             const lower = s.toLowerCase();
+            const hasLetters = /[a-z]/i.test(lower);
             const isMbps = lower.includes('mbps') || lower.includes('mibps') || lower.includes('mbit/s');
+            const isMBps = lower.includes('mb/s') || lower.includes('mib/s') || lower.includes('mbpss'); // 保留为字节单位
             const isKBps = lower.includes('kb/s') || lower.includes('kbps');
-            // 若是 Mbps，则换算为 MBps；若是 KB/s，则换算为 MBps；无单位默认按 MBps 处理
-            if (isMbps) num = num / 8;
             if (isKBps) num = num / 1024;
+            else if (isMbps || !hasLetters) num = num / 8; // 无单位默认按 Mbps 处理
+            else if (isMBps) { /* 已是 MBps 单位，保持 */ }
             return (Math.round(num * 100) / 100).toFixed(2);
         }
 
@@ -2211,7 +2213,12 @@ export default {
         if (path === '/' || path === '') {
             const scuValue = env?.scu || scu;
             return new Response(generateHomePage(scuValue), {
-                headers: { 'Content-Type': 'text/html; charset=utf-8' }
+                headers: { 
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
             });
         }
         
