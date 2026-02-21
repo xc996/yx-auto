@@ -241,7 +241,7 @@ async function 请求优选API(urls, 默认端口 = '443', 超时时间 = 3000) 
                     dataLines.forEach(line => {
                         const cols = line.split(',').map(c => c.trim());
                         const wrappedIP = IPV6_PATTERN.test(cols[ipIdx]) ? `[${cols[ipIdx]}]` : cols[ipIdx];
-                        results.add(`${wrappedIP}:${port}#CF优选 ${cols[delayIdx]}ms ${cols[speedIdx]}MB/s`);
+                        results.add(`${wrappedIP}:${port}#CF优选 ${cols[delayIdx]}ms ${cols[speedIdx]}MBps`);
                     });
                 }
             }
@@ -1835,7 +1835,7 @@ function generateHomePage(scuValue) {
             for (const [ip, info] of mapByIp.entries()) {
                 const nameParts = ['CSV', ip];
                 if (info.latency) nameParts.push('延迟' + info.latency + 'ms');
-                if (info.v) nameParts.push('速度' + info.v + 'MB/s');
+                if (info.v) nameParts.push('速度' + info.v + 'MBps');
                 const name = nameParts.join('-');
                 results.push(ip + ':443#' + name);
             }
