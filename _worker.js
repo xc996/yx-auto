@@ -1480,10 +1480,10 @@ function generateHomePage(scuValue) {
                 <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">自定义优选IP列表来源URL，留空则使用默认地址</small>
             </div>
             <div class="form-group" style="margin-top: 12px;">
-                <label>上传优选CSV（可选）</label>
+                <label>导入CSV（可选）</label>
                 <input type="file" id="ipFile" accept=".csv" style="font-size: 14px;">
                 <div id="ipFileStatus" style="margin-top: 8px; color: #86868b; font-size: 13px;">未导入</div>
-                <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">CSV需包含IP,Latency,Speed三列，可直接导入 result.csv</small>
+                <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">包含 IP,Latency,Speed 三列，可直接导入 result.csv</small>
             </div>
             
             <div class="form-group" style="margin-top: 24px;">
@@ -1697,9 +1697,9 @@ function generateHomePage(scuValue) {
                 if (!ip) continue;
                 const latency = parts[1] || '';
                 const speed = parts[2] || '';
-                const nameParts = [ip];
+                const nameParts = ['CSV', ip];
                 if (latency) nameParts.push('延迟' + latency + 'ms');
-                if (speed) nameParts.push('速度' + speed + 'Mbps');
+                if (speed) nameParts.push('速度' + speed + 'MB/s');
                 const name = nameParts.join('-');
                 results.push(ip + ':443#' + name);
             }
