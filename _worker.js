@@ -105,7 +105,7 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
                     customDNS: document.getElementById('customDNS') ? document.getElementById('customDNS').value.trim() : '',
                     customECHDomain: document.getElementById('customECHDomain') ? document.getElementById('customECHDomain').value.trim() : '',
                     switches: switches,
-                    uploadedGithubUrl: uploadedGithubUrl
+                    clientSubscriptionUrl: (function(){ const el = document.getElementById('clientSubscriptionUrl'); return el && el.style.display !== 'none' ? el.textContent : ''; })()
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             } catch (e) {}
@@ -148,18 +148,12 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
                 if (typeof st.ispTelecom === 'boolean' && document.getElementById('ispTelecom')) document.getElementById('ispTelecom').checked = st.ispTelecom;
                 if (st.customDNS && document.getElementById('customDNS')) document.getElementById('customDNS').value = st.customDNS;
                 if (st.customECHDomain && document.getElementById('customECHDomain')) document.getElementById('customECHDomain').value = st.customECHDomain;
-                if (st.uploadedGithubUrl) {
-                    uploadedGithubUrl = st.uploadedGithubUrl;
-                    if (ipFileStatus) {
-                        const count = uploadedGithubUrl.split('\\n').filter(Boolean).length;
-                        ipFileStatus.textContent = '已导入 ' + count + ' 条';
-                        ipFileStatus.style.color = '#34c759';
-                    }
-                    if (ipFilePreview) {
-                        const preview = uploadedGithubUrl.split('\\n').slice(0, 3).join('\\n');
-                        ipFilePreview.textContent = preview;
-                        ipFilePreview.style.display = preview ? 'block' : 'none';
-                    }
+                // 不恢复上传文件（按需求：导入文件不持久化）
+                if (ipFileStatus) { ipFileStatus.textContent = '未导入'; ipFileStatus.style.color = '#86868b'; }
+                if (ipFilePreview) { ipFilePreview.style.display = 'none'; ipFilePreview.textContent = ''; }
+                if (st.clientSubscriptionUrl) {
+                    const el = document.getElementById('clientSubscriptionUrl');
+                    if (el) { el.textContent = st.clientSubscriptionUrl; el.style.display = 'block'; }
                 }
                 if (st.switches) {
                     switches = Object.assign({}, switches, st.switches);
@@ -2061,6 +2055,7 @@ function generateHomePage(scuValue) {
                 const urlElement = document.getElementById('clientSubscriptionUrl');
                 urlElement.textContent = finalUrl;
                 urlElement.style.display = 'block';
+                saveState();
                 
                 if (clientName === 'V2RAY') {
                     navigator.clipboard.writeText(finalUrl).then(() => {
@@ -2095,6 +2090,7 @@ function generateHomePage(scuValue) {
                 const urlElement = document.getElementById('clientSubscriptionUrl');
                 urlElement.textContent = finalUrl;
                 urlElement.style.display = 'block';
+                saveState();
                 
                 if (clientType === 'clash') {
                     if (clientName === 'STASH') {
