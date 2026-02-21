@@ -1787,10 +1787,10 @@ function generateHomePage(scuValue) {
                 if (seen.has(ip)) continue;
                 seen.add(ip);
                 const nameParts = ['CSV', ip];
-                if (latency) nameParts.push('L' + latency + 'ms');
+                if (latency) nameParts.push('延迟' + latency + 'ms');
                 if (speed) {
                     const v = formatSpeedToMBps(speed);
-                    if (v) nameParts.push('V' + v + 'MB/s');
+                    if (v) nameParts.push('速度' + v + 'MB/s');
                 }
                 const name = nameParts.join('-');
                 results.push(ip + ':443#' + name);
