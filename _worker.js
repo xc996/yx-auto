@@ -1824,13 +1824,39 @@ function generateHomePage(scuValue) {
             if (ipIdx === -1) ipIdx = 0;
             if (latencyIdx === -1) latencyIdx = 1;
             if (speedIdx === -1) speedIdx = 2;
+            const isHeaderToken = (s) => {
+                const t = (s || '').trim().toLowerCase();
+                return ['ip', 'ip地址', '优选地址', '地址', 'host'].includes(t);
+            };
+            const ipv4Re = /^(?:\\d{1,3}\\.){3}\\d{1,3}$/;
+            const ipv6Re = /^[\\da-f:]+$/i;
+            const detectSpeedFromParts = (parts) => {
+                for (const part of parts) {
+                    const m = String(part).match(/(\\d+(?:\\.\\d+)?)\\s*(mbps|mb\\/s|mbps\\b|mibit\\/s|mbit\\/s|kbps|kb\\/s)/i);
+                    if (m) {
+                        const num = parseFloat(m[1]);
+                        const unit = m[2].toLowerCase();
+                        if (['mbps', 'mibit/s', 'mbit/s'].some(u => unit.includes(u.replace(' ', '')) || unit.includes(u))) {
+                            return formatSpeedToMBps(num + ' Mbps');
+                        }
+                        if (unit.includes('kb')) {
+                            return formatSpeedToMBps(num + ' KB/s');
+                        }
+                        return formatSpeedToMBps(num + ' MB/s');
+                    }
+                }
+                return '';
+            };
             const mapByIp = new Map();
             for (let i = startIndex; i < lines.length; i += 1) {
                 const parts = lines[i].split(',').map(part => part.trim());
-                const ip = parts[ipIdx];
-                if (!ip || /ip地址/i.test(ip)) continue;
+                let ip = parts[ipIdx];
+                if (!ip || isHeaderToken(ip)) continue;
+                // 若首列不是有效 IP/域名，尝试在整行中寻找
+                if (!ipv4Re.test(ip) && !ip.includes(':') && /[^a-zA-Z0-9.-]/.test(ip)) continue;
                 const latency = (parts[latencyIdx] || '').trim();
-                const speedRaw = (parts[speedIdx] || '').trim();
+                let speedRaw = (parts[speedIdx] || '').trim();
+                if (!speedRaw) speedRaw = detectSpeedFromParts(parts);
                 const v = formatSpeedToMBps(speedRaw);
                 const vNum = v ? parseFloat(v) : 0;
                 const prev = mapByIp.get(ip);
