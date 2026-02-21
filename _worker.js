@@ -1802,7 +1802,9 @@ function generateHomePage(scuValue) {
             if (isKBps) num = num / 1024;
             else if (isMbps || !hasLetters) num = num / 8; // 无单位默认按 Mbps 处理
             else if (isMBps) { /* 已是 MBps 单位，保持 */ }
-            return (Math.round(num * 100) / 100).toFixed(2);
+            const out = (Math.round(num * 100) / 100).toFixed(2);
+            try { console.debug('[CSV] formatSpeedToMBps', s, '=>', out, 'MBps'); } catch (e) {}
+            return out;
         }
 
         function parseCsvToGithubLines(text) {
@@ -1810,6 +1812,7 @@ function generateHomePage(scuValue) {
             if (!lines.length) return [];
             // 表头自适应（兼容 IP/IP地址/优选地址 等；延迟/Latency；下载速度/Speed 等）
             const headers = lines[0].split(',').map(h => h.trim());
+            try { console.debug('[CSV] headers', headers); } catch (e) {}
             const lowerHeaders = headers.map(h => h.toLowerCase());
             const findIdx = (preds) => {
                 for (let i = 0; i < lowerHeaders.length; i++) {
@@ -1860,6 +1863,7 @@ function generateHomePage(scuValue) {
                 let speedRaw = (parts[speedIdx] || '').trim();
                 if (!speedRaw) speedRaw = detectSpeedFromParts(parts);
                 const v = formatSpeedToMBps(speedRaw);
+                if (i - startIndex < 5) { try { console.debug('[CSV] row', i, { ip, latency, speedRaw, v }); } catch (e) {} }
                 const vNum = v ? parseFloat(v) : 0;
                 const prev = mapByIp.get(ip);
                 if (!prev) {
@@ -1875,13 +1879,16 @@ function generateHomePage(scuValue) {
                 }
             }
             const results = [];
+            let withSpeed = 0;
             for (const [ip, info] of mapByIp.entries()) {
                 const nameParts = ['CSV', ip];
                 if (info.latency) nameParts.push('延迟' + info.latency + 'ms');
                 if (info.v) nameParts.push('速度' + info.v + 'MBps');
+                if (info.v) withSpeed++;
                 const name = nameParts.join('-');
                 results.push(ip + ':443#' + name);
             }
+            try { console.debug('[CSV] parsed', { total: results.length, withSpeed, sample: results.slice(0, 3) }); } catch (e) {}
             return results;
         }
 
@@ -1913,6 +1920,7 @@ function generateHomePage(scuValue) {
                 const preview = lines.slice(0, 3).join('\\n');
                 ipFilePreview.textContent = preview;
                 ipFilePreview.style.display = 'block';
+                try { console.debug('[CSV] preview', preview); } catch (e) {}
             }
             if (!switches.switchGitHub) toggleSwitch('switchGitHub');
             saveState();
