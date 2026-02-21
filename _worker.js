@@ -89,106 +89,6 @@ async function fetchDynamicIPs(ipv4Enabled = true, ipv6Enabled = true, ispMobile
             fetchPromises.push(Promise.resolve([]));
         }
 
-        function saveState() {
-            try {
-                const state = {
-                    domain: document.getElementById('domain').value.trim(),
-                    uuid: document.getElementById('uuid').value.trim(),
-                    customPath: document.getElementById('customPath').value.trim(),
-                    customPorts: document.getElementById('customPorts').value.trim(),
-                    githubUrl: document.getElementById('githubUrl').value.trim(),
-                    ipv4Enabled: document.getElementById('ipv4Enabled') ? document.getElementById('ipv4Enabled').checked : undefined,
-                    ipv6Enabled: document.getElementById('ipv6Enabled') ? document.getElementById('ipv6Enabled').checked : undefined,
-                    ispMobile: document.getElementById('ispMobile') ? document.getElementById('ispMobile').checked : undefined,
-                    ispUnicom: document.getElementById('ispUnicom') ? document.getElementById('ispUnicom').checked : undefined,
-                    ispTelecom: document.getElementById('ispTelecom') ? document.getElementById('ispTelecom').checked : undefined,
-                    customDNS: document.getElementById('customDNS') ? document.getElementById('customDNS').value.trim() : '',
-                    customECHDomain: document.getElementById('customECHDomain') ? document.getElementById('customECHDomain').value.trim() : '',
-                    switches: switches,
-                    clientSubscriptionUrl: (function(){ const el = document.getElementById('clientSubscriptionUrl'); return el && el.style.display !== 'none' ? el.textContent : ''; })()
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            } catch (e) {}
-        }
-
-        function restoreSwitchUI() {
-            Object.keys(switches).forEach(k => {
-                const el = document.getElementById(k);
-                if (!el) return;
-                if (switches[k]) {
-                    el.classList.add('active');
-                } else {
-                    el.classList.remove('active');
-                }
-            });
-            const echOpt = document.getElementById('echOptionsGroup');
-            if (echOpt) echOpt.style.display = switches.switchECH ? 'block' : 'none';
-            if (switches.switchECH && !switches.switchTLS) {
-                // 强制仅TLS以匹配 ECH 依赖
-                switches.switchTLS = true;
-                const tlsEl = document.getElementById('switchTLS');
-                if (tlsEl) tlsEl.classList.add('active');
-            }
-        }
-
-        function loadState() {
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                if (!raw) return;
-                const st = JSON.parse(raw);
-                if (st.domain) document.getElementById('domain').value = st.domain;
-                if (st.uuid) document.getElementById('uuid').value = st.uuid;
-                if (st.customPath) document.getElementById('customPath').value = st.customPath;
-                if (st.customPorts) document.getElementById('customPorts').value = st.customPorts;
-                if (st.githubUrl) document.getElementById('githubUrl').value = st.githubUrl;
-                if (typeof st.ipv4Enabled === 'boolean' && document.getElementById('ipv4Enabled')) document.getElementById('ipv4Enabled').checked = st.ipv4Enabled;
-                if (typeof st.ipv6Enabled === 'boolean' && document.getElementById('ipv6Enabled')) document.getElementById('ipv6Enabled').checked = st.ipv6Enabled;
-                if (typeof st.ispMobile === 'boolean' && document.getElementById('ispMobile')) document.getElementById('ispMobile').checked = st.ispMobile;
-                if (typeof st.ispUnicom === 'boolean' && document.getElementById('ispUnicom')) document.getElementById('ispUnicom').checked = st.ispUnicom;
-                if (typeof st.ispTelecom === 'boolean' && document.getElementById('ispTelecom')) document.getElementById('ispTelecom').checked = st.ispTelecom;
-                if (st.customDNS && document.getElementById('customDNS')) document.getElementById('customDNS').value = st.customDNS;
-                if (st.customECHDomain && document.getElementById('customECHDomain')) document.getElementById('customECHDomain').value = st.customECHDomain;
-                // 不恢复上传文件（按需求：导入文件不持久化）
-                if (ipFileStatus) { ipFileStatus.textContent = '未导入'; ipFileStatus.style.color = '#86868b'; }
-                if (ipFilePreview) { ipFilePreview.style.display = 'none'; ipFilePreview.textContent = ''; }
-                if (st.clientSubscriptionUrl) {
-                    const el = document.getElementById('clientSubscriptionUrl');
-                    if (el) { el.textContent = st.clientSubscriptionUrl; el.style.display = 'block'; }
-                }
-                if (st.switches) {
-                    switches = Object.assign({}, switches, st.switches);
-                    restoreSwitchUI();
-                }
-            } catch (e) {}
-        }
-
-        ['domain','uuid','customPath','customPorts','githubUrl'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('input', saveState);
-                el.addEventListener('change', saveState);
-                el.addEventListener('blur', saveState);
-            }
-        });
-        ['ipv4Enabled','ipv6Enabled','ispMobile','ispUnicom','ispTelecom'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('change', saveState);
-        });
-        ['customDNS','customECHDomain'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('input', saveState);
-                el.addEventListener('change', saveState);
-                el.addEventListener('blur', saveState);
-            }
-        });
-        window.addEventListener('beforeunload', saveState);
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') saveState();
-        });
-
-        loadState();
-
         const [ipv4List, ipv6List] = await Promise.all(fetchPromises);
         results = [...ipv4List, ...ipv6List];
         
@@ -1791,6 +1691,104 @@ function generateHomePage(scuValue) {
 
         initAccess();
 
+        // 本地持久化（除导入文件）
+        function saveState() {
+            try {
+                const state = {
+                    domain: document.getElementById('domain')?.value.trim() || '',
+                    uuid: document.getElementById('uuid')?.value.trim() || '',
+                    customPath: document.getElementById('customPath')?.value.trim() || '',
+                    customPorts: document.getElementById('customPorts')?.value.trim() || '',
+                    githubUrl: document.getElementById('githubUrl')?.value.trim() || '',
+                    ipv4Enabled: !!document.getElementById('ipv4Enabled')?.checked,
+                    ipv6Enabled: !!document.getElementById('ipv6Enabled')?.checked,
+                    ispMobile: !!document.getElementById('ispMobile')?.checked,
+                    ispUnicom: !!document.getElementById('ispUnicom')?.checked,
+                    ispTelecom: !!document.getElementById('ispTelecom')?.checked,
+                    customDNS: document.getElementById('customDNS')?.value.trim() || '',
+                    customECHDomain: document.getElementById('customECHDomain')?.value.trim() || '',
+                    switches: switches,
+                    clientSubscriptionUrl: (function(){ const el = document.getElementById('clientSubscriptionUrl'); return el && el.style.display !== 'none' ? el.textContent : ''; })()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        function restoreSwitchUI() {
+            Object.keys(switches).forEach(k => {
+                const el = document.getElementById(k);
+                if (!el) return;
+                if (switches[k]) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+            const echOpt = document.getElementById('echOptionsGroup');
+            if (echOpt) echOpt.style.display = switches.switchECH ? 'block' : 'none';
+            if (switches.switchECH && !switches.switchTLS) {
+                switches.switchTLS = true;
+                const tlsEl = document.getElementById('switchTLS');
+                if (tlsEl) tlsEl.classList.add('active');
+            }
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const st = JSON.parse(raw);
+                if (st.domain) document.getElementById('domain').value = st.domain;
+                if (st.uuid) document.getElementById('uuid').value = st.uuid;
+                if (st.customPath) document.getElementById('customPath').value = st.customPath;
+                if (st.customPorts) document.getElementById('customPorts').value = st.customPorts;
+                if (st.githubUrl) document.getElementById('githubUrl').value = st.githubUrl;
+                if (typeof st.ipv4Enabled === 'boolean' && document.getElementById('ipv4Enabled')) document.getElementById('ipv4Enabled').checked = st.ipv4Enabled;
+                if (typeof st.ipv6Enabled === 'boolean' && document.getElementById('ipv6Enabled')) document.getElementById('ipv6Enabled').checked = st.ipv6Enabled;
+                if (typeof st.ispMobile === 'boolean' && document.getElementById('ispMobile')) document.getElementById('ispMobile').checked = st.ispMobile;
+                if (typeof st.ispUnicom === 'boolean' && document.getElementById('ispUnicom')) document.getElementById('ispUnicom').checked = st.ispUnicom;
+                if (typeof st.ispTelecom === 'boolean' && document.getElementById('ispTelecom')) document.getElementById('ispTelecom').checked = st.ispTelecom;
+                if (st.customDNS && document.getElementById('customDNS')) document.getElementById('customDNS').value = st.customDNS;
+                if (st.customECHDomain && document.getElementById('customECHDomain')) document.getElementById('customECHDomain').value = st.customECHDomain;
+                // 不恢复上传文件
+                const ipFileStatusEl = document.getElementById('ipFileStatus');
+                const ipFilePreviewEl = document.getElementById('ipFilePreview');
+                if (ipFileStatusEl) { ipFileStatusEl.textContent = '未导入'; ipFileStatusEl.style.color = '#86868b'; }
+                if (ipFilePreviewEl) { ipFilePreviewEl.style.display = 'none'; ipFilePreviewEl.textContent = ''; }
+                if (st.switches) {
+                    switches = Object.assign({}, switches, st.switches);
+                    restoreSwitchUI();
+                }
+                if (st.clientSubscriptionUrl) {
+                    const el = document.getElementById('clientSubscriptionUrl');
+                    if (el) { el.textContent = st.clientSubscriptionUrl; el.style.display = 'block'; }
+                }
+            } catch (e) {}
+        }
+
+        ['domain','uuid','customPath','customPorts','githubUrl'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', saveState);
+                el.addEventListener('change', saveState);
+                el.addEventListener('blur', saveState);
+            }
+        });
+        ['ipv4Enabled','ipv6Enabled','ispMobile','ispUnicom','ispTelecom'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', saveState);
+        });
+        ['customDNS','customECHDomain'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', saveState);
+                el.addEventListener('change', saveState);
+                el.addEventListener('blur', saveState);
+            }
+        });
+        window.addEventListener('beforeunload', saveState);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') saveState();
+        });
+        loadState();
+
         function formatSpeedToMBps(val) {
             if (!val) return '';
             const s = String(val).trim();
@@ -1982,6 +1980,8 @@ function generateHomePage(scuValue) {
         }
         
         function generateClientLink(clientType, clientName) {
+            // 点击按钮即保存当前界面状态，确保未失焦也能持久化
+            saveState();
             const domain = document.getElementById('domain').value.trim();
             const uuid = document.getElementById('uuid').value.trim();
             const customPath = document.getElementById('customPath').value.trim() || '/';
