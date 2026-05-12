@@ -1506,6 +1506,14 @@ function generateHomePage(scuValue) {
                 <label style="margin-top: 12px; display: block;">ECH 域名（可选）</label>
                 <input type="text" id="customECHDomain" placeholder="例如: cloudflare-ech.com" style="font-size: 14px;">
             </div>
+
+            <div class="form-group" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1);">
+                <label>保存当前配置</label>
+                <button type="button" class="btn btn-secondary" onclick="generateAndCopyBookmark()" style="margin-top: 8px; padding: 12px; font-size: 15px;">🔗 生成并复制直达链接</button>
+                <div class="result-url" id="bookmarkUrlDisplay" style="display: none; margin-top: 12px; background: rgba(52, 199, 89, 0.1); color: #34c759;"></div>
+                <div id="bookmarkTip" style="margin-top: 8px; font-size: 13px;"></div>
+                <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">生成包含当前表单内容的 URL，保存为浏览器书签即可一键恢复配置</small>
+            </div>
         </div>
         
         <div class="footer">
@@ -1719,6 +1727,30 @@ function generateHomePage(scuValue) {
             if (document.visibilityState === 'hidden') saveState();
         });
         loadState();
+
+        function generateAndCopyBookmark() {
+            saveState();
+            const url = new URL(window.location.origin + window.location.pathname);
+            const params = ['domain', 'uuid', 'customPath', 'customPorts', 'githubUrl'];
+            params.forEach(key => {
+                const el = document.getElementById(key);
+                if (el && el.value.trim()) {
+                    url.searchParams.set(key, el.value.trim());
+                }
+            });
+            
+            const finalUrl = url.toString();
+            const displayEl = document.getElementById('bookmarkUrlDisplay');
+            displayEl.textContent = finalUrl;
+            displayEl.style.display = 'block';
+            
+            navigator.clipboard.writeText(finalUrl).then(() => {
+                setTip('bookmarkTip', '✅ 链接已复制！可保存为浏览器书签', '#34c759');
+                setTimeout(() => setTip('bookmarkTip', ''), 3000);
+            }).catch(() => {
+                setTip('bookmarkTip', '❌ 复制失败，请手动复制上方链接', '#ff3b30');
+            });
+        }
 
         function formatSpeedToMBps(val) {
             if (!val) return '';
