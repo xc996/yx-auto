@@ -1,0 +1,111 @@
+_worker.js
+  1ffb83a7ee72a764 1511-1521,1643,1684-1687,1722,1799-1930,2192-2199 gitai:{"mixed_line_ranges":[],"operations":[{"operation_id":"6a02ea1965763557b22d454e","tool_type":"agent","tool_id":"SearchReplace","line_ranges":[{"Range":[1511,1521]},{"Single":1643},{"Range":[1684,1687]},{"Single":1722},{"Range":[1799,1930]},{"Range":[2192,2199]}]}]}
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "2a6e7998bcf17a234b2308901cc135be04080853",
+  "prompts": {
+    "1ffb83a7ee72a764": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "69fc2d83ff4d543f39aab37e",
+        "model": "gemini-3.1-pro__dev"
+      },
+      "human_author": "xc996 <becomebr79@gmail.com>",
+      "messages": [],
+      "total_additions": 167,
+      "total_deletions": 13,
+      "accepted_lines": 158,
+      "overriden_lines": 0
+    }
+  },
+  "attestation_metadata": {
+    "_worker.js": [
+      {
+        "hash": "1ffb83a7ee72a764",
+        "line_ranges": [
+          {
+            "Range": [
+              1511,
+              1521
+            ]
+          },
+          {
+            "Single": 1643
+          },
+          {
+            "Range": [
+              1684,
+              1687
+            ]
+          },
+          {
+            "Single": 1722
+          },
+          {
+            "Range": [
+              1799,
+              1930
+            ]
+          },
+          {
+            "Range": [
+              2192,
+              2199
+            ]
+          }
+        ],
+        "mixed_line_ranges": [],
+        "operations": [
+          {
+            "operation_id": "6a02ea1965763557b22d454e",
+            "tool_type": "agent",
+            "tool_id": "SearchReplace",
+            "line_ranges": [
+              {
+                "Range": [
+                  1511,
+                  1521
+                ]
+              },
+              {
+                "Single": 1643
+              },
+              {
+                "Range": [
+                  1684,
+                  1687
+                ]
+              },
+              {
+                "Single": 1722
+              },
+              {
+                "Range": [
+                  1799,
+                  1930
+                ]
+              },
+              {
+                "Range": [
+                  2192,
+                  2199
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "remote_transcripts": {
+    "1ffb83a7ee72a764": {
+      "tool": "trae",
+      "conversation_id": "69fc2d83ff4d543f39aab37e",
+      "session_id": "69fc2d83ff4d543f39aab37e",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    }
+  }
+}
