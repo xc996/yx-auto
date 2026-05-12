@@ -1510,12 +1510,39 @@ function generateHomePage(scuValue) {
             <div class="form-group" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1);">
                 <label>在线优选 (浏览器本地测速)</label>
                 <div style="display: flex; gap: 10px; margin-top: 8px;">
-                    <input type="number" id="randomIPCount" placeholder="测速数量" value="20" style="width: 100px;">
-                    <input type="number" id="latencyTestPort" placeholder="端口" value="443" style="width: 80px;">
-                    <button type="button" class="btn btn-secondary" onclick="startLatencyTest()" id="latencyTestBtn" style="margin-top: 0; flex: 1;">🎲 生成并测速</button>
+                    <input type="number" id="randomIPCount" placeholder="数量" value="20" style="width: 80px;" title="测速IP数量">
+                    <input type="number" id="latencyTestPort" placeholder="端口" value="443" style="width: 70px;" title="测速端口">
+                    <input type="number" id="testThreads" placeholder="并发" value="5" style="width: 70px;" title="并发线程数">
+                    <button type="button" class="btn btn-secondary" onclick="startLatencyTest()" id="latencyTestBtn" style="margin-top: 0; flex: 1; padding: 0 10px;">🎲 测速</button>
                 </div>
                 <div id="latencyTestStatus" style="margin-top: 8px; font-size: 13px; color: #86868b; display: none;"></div>
-                <textarea id="manualIPs" placeholder="测速结果将显示在这里，也可以手动输入 IP:端口#备注，每行一个" style="margin-top: 8px; height: 100px; font-size: 14px; font-family: monospace; display: none;"></textarea>
+                
+                <div id="testResultUI" style="display: none; margin-top: 12px; background: rgba(142, 142, 147, 0.08); border-radius: 12px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 14px; font-weight: 600;">筛选测速结果</span>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" onclick="selectAllResults(true)" style="background: transparent; border: none; color: #007aff; font-size: 13px; cursor: pointer;">全选</button>
+                            <button type="button" onclick="selectAllResults(false)" style="background: transparent; border: none; color: #007aff; font-size: 13px; cursor: pointer;">反选</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 8px;">
+                        <label style="display: inline-flex; align-items: center; cursor: pointer; font-size: 13px; margin-right: 12px;">
+                            <input type="radio" name="cityFilterMode" value="all" checked onchange="applyCityFilter()" style="margin-right: 4px;"> 全部
+                        </label>
+                        <label style="display: inline-flex; align-items: center; cursor: pointer; font-size: 13px;">
+                            <input type="radio" name="cityFilterMode" value="fastest10" onchange="applyCityFilter()" style="margin-right: 4px;"> 最快10个
+                        </label>
+                    </div>
+                    
+                    <div id="cityCheckboxes" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; font-size: 13px;"></div>
+                    
+                    <div id="latencyResultsList" style="max-height: 150px; overflow-y: auto; background: #fff; border: 1px solid rgba(0,0,0,0.05); border-radius: 8px; padding: 8px; font-size: 13px; font-family: monospace;"></div>
+                    
+                    <button type="button" class="btn btn-secondary" onclick="appendSelectedResults()" style="margin-top: 10px; padding: 10px; font-size: 14px;">➕ 追加选中项到下方列表</button>
+                </div>
+                
+                <textarea id="manualIPs" placeholder="优选IP将显示在这里，也可以手动输入 IP:端口#备注，每行一个" style="margin-top: 12px; height: 100px; font-size: 14px; font-family: monospace; display: none;"></textarea>
                 <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">通过您的浏览器直接测试 Cloudflare 节点延迟，真实反映您当前网络的连通性。</small>
             </div>
 
@@ -1803,6 +1830,44 @@ function generateHomePage(scuValue) {
             '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'
         ];
 
+        const coloMap = {
+            'SJC': '🇺🇸 圣何塞', 'LAX': '🇺🇸 洛杉矶', 'SEA': '🇺🇸 西雅图', 'SFO': '🇺🇸 旧金山', 'DFW': '🇺🇸 达拉斯',
+            'ORD': '🇺🇸 芝加哥', 'IAD': '🇺🇸 华盛顿', 'ATL': '🇺🇸 亚特兰大', 'MIA': '🇺🇸 迈阿密', 'DEN': '🇺🇸 丹佛',
+            'PHX': '🇺🇸 凤凰城', 'BOS': '🇺🇸 波士顿', 'EWR': '🇺🇸 纽瓦克', 'JFK': '🇺🇸 纽约', 'LAS': '🇺🇸 拉斯维加斯',
+            'MSP': '🇺🇸 明尼阿波利斯', 'DTW': '🇺🇸 底特律', 'PHL': '🇺🇸 费城', 'CLT': '🇺🇸 夏洛特', 'SLC': '🇺🇸 盐湖城',
+            'PDX': '🇺🇸 波特兰', 'SAN': '🇺🇸 圣地亚哥', 'TPA': '🇺🇸 坦帕', 'IAH': '🇺🇸 休斯顿', 'MCO': '🇺🇸 奥兰多',
+            'AUS': '🇺🇸 奥斯汀', 'BNA': '🇺🇸 纳什维尔', 'RDU': '🇺🇸 罗利', 'IND': '🇺🇸 印第安纳波利斯', 'CMH': '🇺🇸 哥伦布',
+            'MCI': '🇺🇸 堪萨斯城', 'OMA': '🇺🇸 奥马哈', 'ABQ': '🇺🇸 阿尔伯克基', 'OKC': '🇺🇸 俄克拉荷马城', 'MEM': '🇺🇸 孟菲斯',
+            'JAX': '🇺🇸 杰克逊维尔', 'RIC': '🇺🇸 里士满', 'BUF': '🇺🇸 布法罗', 'PIT': '🇺🇸 匹兹堡', 'CLE': '🇺🇸 克利夫兰',
+            'CVG': '🇺🇸 辛辛那提', 'MKE': '🇺🇸 密尔沃基', 'STL': '🇺🇸 圣路易斯', 'SAT': '🇺🇸 圣安东尼奥', 'HNL': '🇺🇸 檀香山',
+            'ANC': '🇺🇸 安克雷奇', 'SMF': '🇺🇸 萨克拉门托', 'ONT': '🇺🇸 安大略', 'OAK': '🇺🇸 奥克兰',
+            'HKG': '🇭🇰 香港', 'TPE': '🇹🇼 台北', 'TSA': '🇹🇼 台北松山', 'KHH': '🇹🇼 高雄',
+            'NRT': '🇯🇵 东京成田', 'HND': '🇯🇵 东京羽田', 'KIX': '🇯🇵 大阪关西', 'ITM': '🇯🇵 大阪伊丹', 'NGO': '🇯🇵 名古屋',
+            'FUK': '🇯🇵 福冈', 'CTS': '🇯🇵 札幌', 'OKA': '🇯🇵 冲绳',
+            'ICN': '🇰🇷 首尔仁川', 'GMP': '🇰🇷 首尔金浦', 'PUS': '🇰🇷 釜山',
+            'SIN': '🇸🇬 新加坡', 'BKK': '🇹🇭 曼谷', 'DMK': '🇹🇭 曼谷廊曼', 'KUL': '🇲🇾 吉隆坡', 'CGK': '🇮🇩 雅加达',
+            'MNL': '🇵🇭 马尼拉', 'CEB': '🇵🇭 宿务', 'HAN': '🇻🇳 河内', 'SGN': '🇻🇳 胡志明', 'DAD': '🇻🇳 岘港',
+            'RGN': '🇲🇲 仰光', 'PNH': '🇰🇭 金边', 'REP': '🇰🇭 暹粒', 'VTE': '🇱🇦 万象',
+            'BOM': '🇮🇳 孟买', 'DEL': '🇮🇳 新德里', 'MAA': '🇮🇳 金奈', 'BLR': '🇮🇳 班加罗尔', 'CCU': '🇮🇳 加尔各答',
+            'HYD': '🇮🇳 海得拉巴', 'AMD': '🇮🇳 艾哈迈达巴德', 'COK': '🇮🇳 科钦', 'PNQ': '🇮🇳 浦那', 'GOI': '🇮🇳 果阿',
+            'CMB': '🇱🇰 科伦坡', 'DAC': '🇧🇩 达卡', 'KTM': '🇳🇵 加德满都', 'ISB': '🇵🇰 伊斯兰堡', 'KHI': '🇵🇰 卡拉奇', 'LHE': '🇵🇰 拉合尔',
+            'LHR': '🇬🇧 伦敦希思罗', 'LGW': '🇬🇧 伦敦盖特威克', 'STN': '🇬🇧 伦敦斯坦斯特德', 'LTN': '🇬🇧 伦敦卢顿', 'MAN': '🇬🇧 曼彻斯特', 'EDI': '🇬🇧 爱丁堡', 'BHX': '🇬🇧 伯明翰',
+            'CDG': '🇫🇷 巴黎戴高乐', 'ORY': '🇫🇷 巴黎奥利', 'MRS': '🇫🇷 马赛', 'LYS': '🇫🇷 里昂', 'NCE': '🇫🇷 尼斯',
+            'FRA': '🇩🇪 法兰克福', 'MUC': '🇩🇪 慕尼黑', 'TXL': '🇩🇪 柏林', 'BER': '🇩🇪 柏林勃兰登堡', 'HAM': '🇩🇪 汉堡', 'DUS': '🇩🇪 杜塞尔多夫', 'CGN': '🇩🇪 科隆', 'STR': '🇩🇪 斯图加特',
+            'AMS': '🇳🇱 阿姆斯特丹', 'BRU': '🇧🇪 布鲁塞尔', 'LUX': '🇱🇺 卢森堡',
+            'ZRH': '🇨🇭 苏黎世', 'GVA': '🇨🇭 日内瓦', 'BSL': '🇨🇭 巴塞尔',
+            'VIE': '🇦🇹 维也纳', 'PRG': '🇨🇿 布拉格', 'BUD': '🇭🇺 布达佩斯', 'WAW': '🇵🇱 华沙', 'KRK': '🇵🇱 克拉科夫',
+            'MXP': '🇮🇹 米兰马尔彭萨', 'LIN': '🇮🇹 米兰利纳特', 'FCO': '🇮🇹 罗马', 'VCE': '🇮🇹 威尼斯', 'NAP': '🇮🇹 那不勒斯', 'FLR': '🇮🇹 佛罗伦萨', 'BGY': '🇮🇹 贝加莫',
+            'MAD': '🇪🇸 马德里', 'BCN': '🇪🇸 巴塞罗那', 'PMI': '🇪🇸 帕尔马', 'AGP': '🇪🇸 马拉加', 'VLC': '🇪🇸 瓦伦西亚', 'SVQ': '🇪🇸 塞维利亚', 'BIO': '🇪🇸 毕尔巴鄂',
+            'LIS': '🇵🇹 里斯本', 'OPO': '🇵🇹 波尔图', 'FAO': '🇵🇹 法鲁',
+            'DUB': '🇮🇪 都柏林', 'CPH': '🇩🇰 哥本哈根', 'ARN': '🇸🇪 斯德哥尔摩', 'GOT': '🇸🇪 哥德堡',
+            'HEL': '🇸🇪 赫尔辛基', 'OSL': '🇳🇴 奥斯陆',
+            'YVR': '🇨🇦 温哥华', 'YUL': '🇨🇦 温哥华', 'YYZ': '🇨🇦 蒙特利尔', 'YYC': '🇨🇦 多伦多',
+            'GRU': '🇧🇷 圣保罗', 'GIG': '🇧🇷 圣保罗', 'EZE': '🇧🇷 里约热内卢', 'BOG': '🇦🇷 布宜诺斯艾利斯', 'SCL': '🇨🇱 圣地亚哥', 'LIM': '🇨🇱 圣地亚哥', 'BZE': '🇵🇪 利马',
+            'SYD': '🇦🇺 悉尼', 'MEL': '🇦🇺 墨尔本', 'BNE': '🇦🇺 布里斯班', 'PER': '🇦🇺 珀斯', 'ADL': '🇦🇺 珀斯', 'AKL': '🇳🇿 奥克兰',
+            'JNB': '🇿🇦 约翰内斯堡', 'CPT': '🇿🇦 开普敦', 'DUR': '🇿🇦 德班', 'LOS': '🇳🇬 拉各斯', 'NBO': '🇰🇪 内罗毕', 'MBA': '🇰🇪 蒙巴萨', 'EBB': '🇺🇬 恩德培', 'KGL': '🇺🇬 坎帕拉', 'DAR': '🇹🇿 达累斯萨拉姆', 'ADD': '🇹🇿 乞力马扎罗', 'LUN': '🇿🇲 卢萨卡', 'HRE': '🇿🇼 哈拉雷', 'GBE': '🇧🇼 哈博罗内', 'MAP': '🇲🇿 马普托', 'LAD': '🇦🇴 罗安达', 'FIH': '🇨🇩 金沙萨', 'BZV': '🇨🇬 布拉柴维尔', 'LBV': '🇨🇬 黑角', 'DLA': '🇨🇲 杜阿拉', 'YAO': '🇨🇲 雅温得', 'NIM': '🇳🇪 尼亚美', 'BKO': '🇲🇱 巴马科', 'OUA': '🇧🇫 瓦加杜古', 'LFW': '🇹🇬 洛美', 'COO': '🇧🇯 科托努', 'ABJ': '🇨🇮 阿比让', 'ACC': '🇬🇭 阿克拉', 'FNA': '🇸🇱 弗里敦', 'CKY': '🇬🇳 科纳克里', 'BJM': '🇬🇲 班珠尔', 'OXB': '🇬🇼 比绍', 'NKC': '🇲🇷 努瓦克肖特', 'DKR': '🇸🇳 达喀尔', 'SID': '🇨🇻 普拉亚', 'BVC': '🇨🇻 博阿维斯塔', 'RAI': '🇨🇻 圣维森特', 'VXE': '🇨🇻 萨尔', 'SNE': '🇨🇻 圣尼古拉', 'MMO': '🇨🇻 圣地亚哥', 'MTI': '🇨🇻 圣安唐', 'SFL': '🇨🇻 圣菲利佩'
+        };
+
         function generateRandomIPFromCIDR(cidr) {
             const [baseIP, prefixLength] = cidr.split('/');
             const prefix = parseInt(prefixLength);
@@ -1872,59 +1937,159 @@ function generateHomePage(scuValue) {
         }
 
         let isTesting = false;
+        let testResults = [];
+        
         async function startLatencyTest() {
             if (isTesting) return;
             const count = parseInt(document.getElementById('randomIPCount').value) || 20;
             const port = document.getElementById('latencyTestPort').value || '443';
+            const threads = parseInt(document.getElementById('testThreads').value) || 5;
             const statusEl = document.getElementById('latencyTestStatus');
             const manualIPsEl = document.getElementById('manualIPs');
             const btn = document.getElementById('latencyTestBtn');
+            const resultUI = document.getElementById('testResultUI');
             
             statusEl.style.display = 'block';
             manualIPsEl.style.display = 'block';
+            resultUI.style.display = 'none';
             statusEl.textContent = '生成了 ' + count + ' 个IP，开始测速...';
             statusEl.style.color = '#007aff';
             btn.textContent = '测速中...';
             btn.disabled = true;
             
             isTesting = true;
+            testResults = [];
             const ips = generateCFRandomIPs(count, port);
-            const results = [];
             
             let completed = 0;
-            const promises = ips.map(async (target) => {
-                const parts = target.split(':');
-                const host = parts[0];
-                const res = await testLatency(host, port);
-                completed++;
-                statusEl.textContent = '测速中: ' + completed + '/' + count + ' (找到 ' + results.length + ' 个可用IP)';
-                
-                if (res.success) {
-                    const nodeName = res.colo ? 'CF-' + res.colo + '-' + res.latency + 'ms' : 'CF-' + res.latency + 'ms';
-                    results.push(target + '#' + nodeName);
-                    
-                    // 获取现有的内容并追加
-                    let existingLines = manualIPsEl.value.trim() ? manualIPsEl.value.trim().split('\\n') : [];
-                    // 去重
-                    if (!existingLines.some(line => line.startsWith(target))) {
-                        existingLines.push(target + '#' + nodeName);
-                        manualIPsEl.value = existingLines.join('\\n');
-                        saveState();
-                    }
-                }
-            });
+            let successCount = 0;
             
-            await Promise.all(promises);
+            // 实现并发控制
+            for (let i = 0; i < ips.length; i += threads) {
+                const batch = ips.slice(i, i + threads);
+                await Promise.all(batch.map(async (target) => {
+                    const parts = target.split(':');
+                    const host = parts[0];
+                    const res = await testLatency(host, port);
+                    completed++;
+                    
+                    if (res.success) {
+                        successCount++;
+                        const coloName = coloMap[res.colo] || res.colo;
+                        const nodeName = res.colo ? 'CF-' + res.colo + '-' + res.latency + 'ms' : 'CF-' + res.latency + 'ms';
+                        testResults.push({
+                            target: target,
+                            host: host,
+                            port: port,
+                            latency: res.latency,
+                            colo: res.colo,
+                            coloName: coloName,
+                            nodeName: nodeName
+                        });
+                    }
+                    statusEl.textContent = '测速中: ' + completed + '/' + count + ' (找到 ' + successCount + ' 个可用IP)';
+                }));
+            }
+            
             isTesting = false;
-            btn.textContent = '🎲 生成并测速';
+            btn.textContent = '🎲 测速';
             btn.disabled = false;
             
-            if (results.length > 0) {
-                statusEl.textContent = '✅ 测速完成！找到 ' + results.length + ' 个可用IP，已自动追加到下方列表中。';
+            if (testResults.length > 0) {
+                statusEl.textContent = '✅ 测速完成！找到 ' + testResults.length + ' 个可用IP，请在下方筛选并添加。';
                 statusEl.style.color = '#34c759';
+                // 排序：按延迟从小到大
+                testResults.sort((a, b) => a.latency - b.latency);
+                updateCityFilter();
+                applyCityFilter();
+                resultUI.style.display = 'block';
             } else {
                 statusEl.textContent = '❌ 测速完成，未找到可用IP，请重试或增加测速数量。';
                 statusEl.style.color = '#ff3b30';
+            }
+        }
+
+        function updateCityFilter() {
+            const container = document.getElementById('cityCheckboxes');
+            const cityMap = new Map();
+            testResults.forEach(r => {
+                if (!cityMap.has(r.coloName)) {
+                    cityMap.set(r.coloName, 0);
+                }
+                cityMap.set(r.coloName, cityMap.get(r.coloName) + 1);
+            });
+            
+            container.innerHTML = '';
+            Array.from(cityMap.entries()).forEach(([name, count]) => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display: inline-flex; align-items: center; cursor: pointer; background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; padding: 2px 6px;';
+                label.innerHTML = '<input type="checkbox" class="city-filter-cb" value="' + name + '" checked onchange="applyCityFilter()" style="margin-right: 4px;"> ' + name + ' (' + count + ')';
+                container.appendChild(label);
+            });
+        }
+
+        function applyCityFilter() {
+            const listContainer = document.getElementById('latencyResultsList');
+            const mode = document.querySelector('input[name="cityFilterMode"]:checked').value;
+            const checkedCities = Array.from(document.querySelectorAll('.city-filter-cb:checked')).map(cb => cb.value);
+            
+            listContainer.innerHTML = '';
+            let count = 0;
+            
+            testResults.forEach((res, index) => {
+                if (!checkedCities.includes(res.coloName)) return;
+                if (mode === 'fastest10' && count >= 10) return;
+                
+                count++;
+                const item = document.createElement('div');
+                item.style.cssText = 'display: flex; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.05);';
+                
+                const colorStr = res.latency < 200 ? '#34c759' : '#ff9500';
+                item.innerHTML = '<input type="checkbox" class="result-cb" value="' + index + '" checked style="margin-right: 8px;">' +
+                    '<span style="flex: 1;">' + res.target + '</span>' +
+                    '<span style="color: #007aff; margin-right: 8px;">' + res.coloName + '</span>' +
+                    '<span style="color: ' + colorStr + ';">' + res.latency + 'ms</span>';
+                
+                listContainer.appendChild(item);
+            });
+            
+            if (count === 0) {
+                listContainer.innerHTML = '<div style="color: #86868b; text-align: center; padding: 10px;">没有符合条件的节点</div>';
+            }
+        }
+
+        function selectAllResults(checked) {
+            document.querySelectorAll('.result-cb').forEach(cb => cb.checked = checked);
+        }
+
+        function appendSelectedResults() {
+            const manualIPsEl = document.getElementById('manualIPs');
+            let existingLines = manualIPsEl.value.trim() ? manualIPsEl.value.trim().split('\\n') : [];
+            let addedCount = 0;
+            
+            document.querySelectorAll('.result-cb:checked').forEach(cb => {
+                const index = parseInt(cb.value);
+                const res = testResults[index];
+                const line = res.target + '#' + res.nodeName;
+                if (!existingLines.some(l => l.startsWith(res.target))) {
+                    existingLines.push(line);
+                    addedCount++;
+                }
+            });
+            
+            if (addedCount > 0) {
+                manualIPsEl.value = existingLines.join('\\n');
+                saveState();
+                const btn = document.querySelector('button[onclick="appendSelectedResults()"]');
+                const oldText = btn.textContent;
+                btn.textContent = '✅ 成功追加 ' + addedCount + ' 个节点';
+                btn.style.background = '#34c759';
+                btn.style.color = '#fff';
+                setTimeout(() => {
+                    btn.textContent = oldText;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                }, 2000);
             }
         }
 
