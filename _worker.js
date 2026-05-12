@@ -1731,6 +1731,14 @@ function generateHomePage(scuValue) {
         function generateAndCopyBookmark() {
             saveState();
             const url = new URL(window.location.origin + window.location.pathname);
+            
+            // 拼接密码参数 (如果存在)
+            const currentUrl = new URL(window.location.href);
+            const accessParam = currentUrl.searchParams.get('u');
+            if (accessParam) {
+                url.searchParams.set('u', accessParam);
+            }
+
             const params = ['domain', 'uuid', 'customPath', 'customPorts', 'githubUrl'];
             params.forEach(key => {
                 const el = document.getElementById(key);
