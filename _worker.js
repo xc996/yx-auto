@@ -1508,6 +1508,18 @@ function generateHomePage(scuValue) {
             </div>
 
             <div class="form-group" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1);">
+                <label>在线优选 (浏览器本地测速)</label>
+                <div style="display: flex; gap: 10px; margin-top: 8px;">
+                    <input type="number" id="randomIPCount" placeholder="测速数量" value="20" style="width: 100px;">
+                    <input type="number" id="latencyTestPort" placeholder="端口" value="443" style="width: 80px;">
+                    <button type="button" class="btn btn-secondary" onclick="startLatencyTest()" id="latencyTestBtn" style="margin-top: 0; flex: 1;">🎲 生成并测速</button>
+                </div>
+                <div id="latencyTestStatus" style="margin-top: 8px; font-size: 13px; color: #86868b; display: none;"></div>
+                <textarea id="manualIPs" placeholder="测速结果将显示在这里，也可以手动输入 IP:端口#备注，每行一个" style="margin-top: 8px; height: 100px; font-size: 14px; font-family: monospace; display: none;"></textarea>
+                <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">通过您的浏览器直接测试 Cloudflare 节点延迟，真实反映您当前网络的连通性。</small>
+            </div>
+
+            <div class="form-group" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1);">
                 <label>保存当前配置</label>
                 <button type="button" class="btn btn-secondary" onclick="generateAndCopyBookmark()" style="margin-top: 8px; padding: 12px; font-size: 15px;">🔗 生成并复制直达链接</button>
                 <div class="result-url" id="bookmarkUrlDisplay" style="display: none; margin-top: 12px; background: rgba(52, 199, 89, 0.1); color: #34c759;"></div>
@@ -1628,6 +1640,7 @@ function generateHomePage(scuValue) {
                     customPath: document.getElementById('customPath')?.value.trim() || '',
                     customPorts: document.getElementById('customPorts')?.value.trim() || '',
                     githubUrl: document.getElementById('githubUrl')?.value.trim() || '',
+                    manualIPs: document.getElementById('manualIPs')?.value.trim() || '',
                     ipv4Enabled: !!document.getElementById('ipv4Enabled')?.checked,
                     ipv6Enabled: !!document.getElementById('ipv6Enabled')?.checked,
                     ispMobile: !!document.getElementById('ispMobile')?.checked,
@@ -1668,6 +1681,10 @@ function generateHomePage(scuValue) {
                 if (st.customPath) document.getElementById('customPath').value = st.customPath;
                 if (st.customPorts) document.getElementById('customPorts').value = st.customPorts;
                 if (st.githubUrl) document.getElementById('githubUrl').value = st.githubUrl;
+                if (st.manualIPs && document.getElementById('manualIPs')) {
+                    document.getElementById('manualIPs').value = st.manualIPs;
+                    document.getElementById('manualIPs').style.display = 'block';
+                }
                 if (typeof st.ipv4Enabled === 'boolean' && document.getElementById('ipv4Enabled')) document.getElementById('ipv4Enabled').checked = st.ipv4Enabled;
                 if (typeof st.ipv6Enabled === 'boolean' && document.getElementById('ipv6Enabled')) document.getElementById('ipv6Enabled').checked = st.ipv6Enabled;
                 if (typeof st.ispMobile === 'boolean' && document.getElementById('ispMobile')) document.getElementById('ispMobile').checked = st.ispMobile;
@@ -1702,7 +1719,7 @@ function generateHomePage(scuValue) {
             } catch (e) {}
         }
 
-        ['domain','uuid','customPath','customPorts','githubUrl'].forEach(id => {
+        ['domain','uuid','customPath','customPorts','githubUrl','manualIPs'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('input', saveState);
@@ -1777,6 +1794,138 @@ function generateHomePage(scuValue) {
             const out = (Math.round(num * 100) / 100).toFixed(2);
             try { console.debug('[CSV] formatSpeedToMBps', s, '=>', out, 'MB/s'); } catch (e) {}
             return out;
+        }
+
+        const CF_CIDR_LIST = [
+            '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+            '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+            '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+            '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'
+        ];
+
+        function generateRandomIPFromCIDR(cidr) {
+            const [baseIP, prefixLength] = cidr.split('/');
+            const prefix = parseInt(prefixLength);
+            const hostBits = 32 - prefix;
+            const ipParts = baseIP.split('.').map(p => parseInt(p));
+            const ipInt = (ipParts[0] << 24) | (ipParts[1] << 16) | (ipParts[2] << 8) | ipParts[3];
+            const randomOffset = Math.floor(Math.random() * Math.pow(2, hostBits));
+            const mask = (0xFFFFFFFF << hostBits) >>> 0;
+            const randomIP = (((ipInt & mask) >>> 0) + randomOffset) >>> 0;
+            return [(randomIP >>> 24) & 0xFF, (randomIP >>> 16) & 0xFF, (randomIP >>> 8) & 0xFF, randomIP & 0xFF].join('.');
+        }
+
+        function generateCFRandomIPs(count, port) {
+            const ips = [];
+            for (let i = 0; i < count; i++) {
+                const cidr = CF_CIDR_LIST[Math.floor(Math.random() * CF_CIDR_LIST.length)];
+                const ip = generateRandomIPFromCIDR(cidr);
+                ips.push(ip + ':' + port);
+            }
+            return ips;
+        }
+
+        function ipToHex(ip) {
+            const parts = ip.split('.');
+            if (parts.length !== 4) return null;
+            let hex = '';
+            for (let i = 0; i < 4; i++) {
+                const num = parseInt(parts[i]);
+                if (isNaN(num) || num < 0 || num > 255) return null;
+                hex += num.toString(16).padStart(2, '0');
+            }
+            return hex;
+        }
+
+        async function testLatency(host, port) {
+            const timeout = 5000;
+            let colo = '';
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                const cleanHost = host.replace(/^\[|\]$/g, '');
+                const hexIP = ipToHex(cleanHost);
+                const testDomain = hexIP ? (hexIP + '.nip.lfree.org') : (cleanHost + '.nip.lfree.org');
+                const testUrl = 'https://' + testDomain + ':' + port + '/';
+
+                const start = Date.now();
+                const response = await fetch(testUrl, { signal: controller.signal, mode: 'cors' });
+                const latency = Date.now() - start;
+
+                if (!response.ok) {
+                    clearTimeout(timeoutId);
+                    return { success: false };
+                }
+
+                try {
+                    const text = await response.text();
+                    const data = JSON.parse(text);
+                    if (data.colo) colo = data.colo;
+                } catch (e) {}
+
+                clearTimeout(timeoutId);
+                return { success: true, latency, colo };
+            } catch (error) {
+                return { success: false };
+            }
+        }
+
+        let isTesting = false;
+        async function startLatencyTest() {
+            if (isTesting) return;
+            const count = parseInt(document.getElementById('randomIPCount').value) || 20;
+            const port = document.getElementById('latencyTestPort').value || '443';
+            const statusEl = document.getElementById('latencyTestStatus');
+            const manualIPsEl = document.getElementById('manualIPs');
+            const btn = document.getElementById('latencyTestBtn');
+            
+            statusEl.style.display = 'block';
+            manualIPsEl.style.display = 'block';
+            statusEl.textContent = '生成了 ' + count + ' 个IP，开始测速...';
+            statusEl.style.color = '#007aff';
+            btn.textContent = '测速中...';
+            btn.disabled = true;
+            
+            isTesting = true;
+            const ips = generateCFRandomIPs(count, port);
+            const results = [];
+            
+            let completed = 0;
+            const promises = ips.map(async (target) => {
+                const parts = target.split(':');
+                const host = parts[0];
+                const res = await testLatency(host, port);
+                completed++;
+                statusEl.textContent = '测速中: ' + completed + '/' + count + ' (找到 ' + results.length + ' 个可用IP)';
+                
+                if (res.success) {
+                    const nodeName = res.colo ? 'CF-' + res.colo + '-' + res.latency + 'ms' : 'CF-' + res.latency + 'ms';
+                    results.push(target + '#' + nodeName);
+                    
+                    // 获取现有的内容并追加
+                    let existingLines = manualIPsEl.value.trim() ? manualIPsEl.value.trim().split('\\n') : [];
+                    // 去重
+                    if (!existingLines.some(line => line.startsWith(target))) {
+                        existingLines.push(target + '#' + nodeName);
+                        manualIPsEl.value = existingLines.join('\\n');
+                        saveState();
+                    }
+                }
+            });
+            
+            await Promise.all(promises);
+            isTesting = false;
+            btn.textContent = '🎲 生成并测速';
+            btn.disabled = false;
+            
+            if (results.length > 0) {
+                statusEl.textContent = '✅ 测速完成！找到 ' + results.length + ' 个可用IP，已自动追加到下方列表中。';
+                statusEl.style.color = '#34c759';
+            } else {
+                statusEl.textContent = '❌ 测速完成，未找到可用IP，请重试或增加测速数量。';
+                statusEl.style.color = '#ff3b30';
+            }
         }
 
         function parseCsvToGithubLines(text) {
@@ -2040,9 +2189,14 @@ function generateHomePage(scuValue) {
             const ispTelecom = document.getElementById('ispTelecom').checked;
             
             const githubUrlInputValue = document.getElementById('githubUrl').value.trim();
-            const githubUrl = uploadedGithubUrl
-                ? (githubUrlInputValue ? (githubUrlInputValue + '\\n' + uploadedGithubUrl) : uploadedGithubUrl)
-                : githubUrlInputValue;
+            const manualIPsValue = document.getElementById('manualIPs') ? document.getElementById('manualIPs').value.trim() : '';
+            
+            let parts = [];
+            if (githubUrlInputValue) parts.push(githubUrlInputValue);
+            if (uploadedGithubUrl) parts.push(uploadedGithubUrl);
+            if (manualIPsValue) parts.push(manualIPsValue);
+            
+            const githubUrl = parts.join('\\n');
             
             const currentUrl = new URL(window.location.href);
             const baseUrl = currentUrl.origin;
