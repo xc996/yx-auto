@@ -279,12 +279,32 @@ async function fetchAndParseNewIPs(piu) {
     }
 }
 
-// 生成VLESS链接
-function generateLinksFromSource(list, user, workerDomain, disableNonTLS = false, customPath = '/', echConfig = null, customPorts = []) {
+// 提取通用的端口分配逻辑
+function getPortsToGenerate(itemPort, customPorts, disableNonTLS) {
     const CF_HTTP_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095];
     const CF_HTTPS_PORTS = [443, 2053, 2083, 2087, 2096, 8443];
-    const defaultHttpsPorts = [443];
-    const defaultHttpPorts = disableNonTLS ? [] : [80];
+    let ports = [];
+    
+    if (Array.isArray(customPorts) && customPorts.length > 0) {
+        customPorts.forEach(port => {
+            ports.push({ port, tls: CF_HTTPS_PORTS.includes(port) ? true : (CF_HTTP_PORTS.includes(port) ? false : true) });
+        });
+    } else if (itemPort) {
+        const tls = CF_HTTPS_PORTS.includes(itemPort) ? true : (CF_HTTP_PORTS.includes(itemPort) ? false : true);
+        if (tls || !disableNonTLS) {
+            ports.push({ port: itemPort, tls });
+        }
+    } else {
+        ports.push({ port: 443, tls: true });
+        if (!disableNonTLS) {
+            ports.push({ port: 80, tls: false });
+        }
+    }
+    return ports;
+}
+
+// 生成VLESS链接
+function generateLinksFromSource(list, user, workerDomain, disableNonTLS = false, customPath = '/', echConfig = null, customPorts = []) {
     const links = [];
     const wsPath = customPath || '/';
     const proto = 'vless';
@@ -296,37 +316,7 @@ function generateLinksFromSource(list, user, workerDomain, disableNonTLS = false
         }
         const safeIP = item.ip.includes(':') ? `[${item.ip}]` : item.ip;
         
-        let portsToGenerate = [];
-        
-        if (Array.isArray(customPorts) && customPorts.length > 0) {
-            customPorts.forEach(port => {
-                if (CF_HTTPS_PORTS.includes(port)) {
-                    portsToGenerate.push({ port: port, tls: true });
-                } else if (CF_HTTP_PORTS.includes(port)) {
-                    portsToGenerate.push({ port: port, tls: false });
-                } else {
-                    portsToGenerate.push({ port: port, tls: true });
-                }
-            });
-        } else if (item.port) {
-            const port = item.port;
-            if (CF_HTTPS_PORTS.includes(port)) {
-                portsToGenerate.push({ port: port, tls: true });
-            } else if (CF_HTTP_PORTS.includes(port)) {
-                if (!disableNonTLS) {
-                    portsToGenerate.push({ port: port, tls: false });
-                }
-            } else {
-                portsToGenerate.push({ port: port, tls: true });
-            }
-        } else {
-            defaultHttpsPorts.forEach(port => {
-                portsToGenerate.push({ port: port, tls: true });
-            });
-            defaultHttpPorts.forEach(port => {
-                portsToGenerate.push({ port: port, tls: false });
-            });
-        }
+        const portsToGenerate = getPortsToGenerate(item.port, customPorts, disableNonTLS);
 
         portsToGenerate.forEach(({ port, tls }) => {
             if (tls) {
@@ -363,10 +353,6 @@ function generateLinksFromSource(list, user, workerDomain, disableNonTLS = false
 
 // 生成Trojan链接
 async function generateTrojanLinksFromSource(list, user, workerDomain, disableNonTLS = false, customPath = '/', echConfig = null, customPorts = []) {
-    const CF_HTTP_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095];
-    const CF_HTTPS_PORTS = [443, 2053, 2083, 2087, 2096, 8443];
-    const defaultHttpsPorts = [443];
-    const defaultHttpPorts = disableNonTLS ? [] : [80];
     const links = [];
     const wsPath = customPath || '/';
     const password = user;  // Trojan使用UUID作为密码
@@ -378,37 +364,7 @@ async function generateTrojanLinksFromSource(list, user, workerDomain, disableNo
         }
         const safeIP = item.ip.includes(':') ? `[${item.ip}]` : item.ip;
         
-        let portsToGenerate = [];
-        
-        if (Array.isArray(customPorts) && customPorts.length > 0) {
-            customPorts.forEach(port => {
-                if (CF_HTTPS_PORTS.includes(port)) {
-                    portsToGenerate.push({ port: port, tls: true });
-                } else if (CF_HTTP_PORTS.includes(port)) {
-                    portsToGenerate.push({ port: port, tls: false });
-                } else {
-                    portsToGenerate.push({ port: port, tls: true });
-                }
-            });
-        } else if (item.port) {
-            const port = item.port;
-            if (CF_HTTPS_PORTS.includes(port)) {
-                portsToGenerate.push({ port: port, tls: true });
-            } else if (CF_HTTP_PORTS.includes(port)) {
-                if (!disableNonTLS) {
-                    portsToGenerate.push({ port: port, tls: false });
-                }
-            } else {
-                portsToGenerate.push({ port: port, tls: true });
-            }
-        } else {
-            defaultHttpsPorts.forEach(port => {
-                portsToGenerate.push({ port: port, tls: true });
-            });
-            defaultHttpPorts.forEach(port => {
-                portsToGenerate.push({ port: port, tls: false });
-            });
-        }
+        const portsToGenerate = getPortsToGenerate(item.port, customPorts, disableNonTLS);
 
         portsToGenerate.forEach(({ port, tls }) => {
             if (tls) {
@@ -443,10 +399,6 @@ async function generateTrojanLinksFromSource(list, user, workerDomain, disableNo
 
 // 生成VMess链接 (已修复中文名导致1101报错的问题)
 function generateVMessLinksFromSource(list, user, workerDomain, disableNonTLS = false, customPath = '/', echConfig = null, customPorts = []) {
-    const CF_HTTP_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095];
-    const CF_HTTPS_PORTS = [443, 2053, 2083, 2087, 2096, 8443];
-    const defaultHttpsPorts = [443];
-    const defaultHttpPorts = disableNonTLS ? [] : [80];
     const links = [];
     const wsPath = customPath || '/';
 
@@ -457,39 +409,7 @@ function generateVMessLinksFromSource(list, user, workerDomain, disableNonTLS = 
         }
         const safeIP = item.ip.includes(':') ? `[${item.ip}]` : item.ip;
         
-        let portsToGenerate = [];
-        
-        if (Array.isArray(customPorts) && customPorts.length > 0) {
-            customPorts.forEach(port => {
-                if (CF_HTTPS_PORTS.includes(port)) {
-                    portsToGenerate.push({ port: port, tls: true });
-                } else if (CF_HTTP_PORTS.includes(port)) {
-                    if (!disableNonTLS) {
-                        portsToGenerate.push({ port: port, tls: false });
-                    }
-                } else {
-                    portsToGenerate.push({ port: port, tls: true });
-                }
-            });
-        } else if (item.port) {
-            const port = item.port;
-            if (CF_HTTPS_PORTS.includes(port)) {
-                portsToGenerate.push({ port: port, tls: true });
-            } else if (CF_HTTP_PORTS.includes(port)) {
-                if (!disableNonTLS) {
-                    portsToGenerate.push({ port: port, tls: false });
-                }
-            } else {
-                portsToGenerate.push({ port: port, tls: true });
-            }
-        } else {
-            defaultHttpsPorts.forEach(port => {
-                portsToGenerate.push({ port: port, tls: true });
-            });
-            defaultHttpPorts.forEach(port => {
-                portsToGenerate.push({ port: port, tls: false });
-            });
-        }
+        const portsToGenerate = getPortsToGenerate(item.port, customPorts, disableNonTLS);
 
         portsToGenerate.forEach(({ port, tls }) => {
             const vmessConfig = {
@@ -1760,6 +1680,17 @@ function generateHomePage(scuValue) {
                     const el = document.getElementById('clientSubscriptionUrl');
                     if (el) { el.textContent = st.clientSubscriptionUrl; el.style.display = 'block'; }
                 }
+            } catch (e) {}
+
+            // 用 URL 参数覆盖当前界面的值，方便用户将常用配置（如域名和UUID）保存为书签
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                ['domain', 'uuid', 'customPath', 'customPorts', 'githubUrl'].forEach(key => {
+                    if (urlParams.has(key)) {
+                        const el = document.getElementById(key);
+                        if (el) el.value = urlParams.get(key);
+                    }
+                });
             } catch (e) {}
         }
 
