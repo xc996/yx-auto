@@ -1,0 +1,183 @@
+_worker.js
+  1ffb83a7ee72a764 1127-1239,1331-1345,1640-1644,1648-1653,1657-1659,1661-1662,1666,1668,1670,1674,2153-2154,2173,2176-2179,2185 gitai:{"mixed_line_ranges":[],"operations":[{"operation_id":"6a02ef1d65763557b22d461b","tool_type":"agent","tool_id":"SearchReplace","line_ranges":[{"Range":[1127,1239]},{"Range":[1331,1345]},{"Range":[1640,1644]},{"Range":[1648,1653]},{"Range":[1657,1659]},{"Range":[1661,1662]},{"Single":1666},{"Single":1668},{"Single":1670},{"Single":1674},{"Range":[2153,2154]},{"Single":2173},{"Range":[2176,2179]},{"Single":2185}]}]}
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "8a5effa935099835a46be559e7344897bc0806e3",
+  "prompts": {
+    "1ffb83a7ee72a764": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "69fc2d83ff4d543f39aab37e",
+        "model": "gemini-3.1-pro__dev"
+      },
+      "human_author": "xc996 <becomebr79@gmail.com>",
+      "messages": [],
+      "total_additions": 156,
+      "total_deletions": 28,
+      "accepted_lines": 156,
+      "overriden_lines": 0
+    }
+  },
+  "attestation_metadata": {
+    "_worker.js": [
+      {
+        "hash": "1ffb83a7ee72a764",
+        "line_ranges": [
+          {
+            "Range": [
+              1127,
+              1239
+            ]
+          },
+          {
+            "Range": [
+              1331,
+              1345
+            ]
+          },
+          {
+            "Range": [
+              1640,
+              1644
+            ]
+          },
+          {
+            "Range": [
+              1648,
+              1653
+            ]
+          },
+          {
+            "Range": [
+              1657,
+              1659
+            ]
+          },
+          {
+            "Range": [
+              1661,
+              1662
+            ]
+          },
+          {
+            "Single": 1666
+          },
+          {
+            "Single": 1668
+          },
+          {
+            "Single": 1670
+          },
+          {
+            "Single": 1674
+          },
+          {
+            "Range": [
+              2153,
+              2154
+            ]
+          },
+          {
+            "Single": 2173
+          },
+          {
+            "Range": [
+              2176,
+              2179
+            ]
+          },
+          {
+            "Single": 2185
+          }
+        ],
+        "mixed_line_ranges": [],
+        "operations": [
+          {
+            "operation_id": "6a02ef1d65763557b22d461b",
+            "tool_type": "agent",
+            "tool_id": "SearchReplace",
+            "line_ranges": [
+              {
+                "Range": [
+                  1127,
+                  1239
+                ]
+              },
+              {
+                "Range": [
+                  1331,
+                  1345
+                ]
+              },
+              {
+                "Range": [
+                  1640,
+                  1644
+                ]
+              },
+              {
+                "Range": [
+                  1648,
+                  1653
+                ]
+              },
+              {
+                "Range": [
+                  1657,
+                  1659
+                ]
+              },
+              {
+                "Range": [
+                  1661,
+                  1662
+                ]
+              },
+              {
+                "Single": 1666
+              },
+              {
+                "Single": 1668
+              },
+              {
+                "Single": 1670
+              },
+              {
+                "Single": 1674
+              },
+              {
+                "Range": [
+                  2153,
+                  2154
+                ]
+              },
+              {
+                "Single": 2173
+              },
+              {
+                "Range": [
+                  2176,
+                  2179
+                ]
+              },
+              {
+                "Single": 2185
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "remote_transcripts": {
+    "1ffb83a7ee72a764": {
+      "tool": "trae",
+      "conversation_id": "69fc2d83ff4d543f39aab37e",
+      "session_id": "69fc2d83ff4d543f39aab37e",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    }
+  }
+}
