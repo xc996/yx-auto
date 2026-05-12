@@ -1,0 +1,75 @@
+_worker.js
+  1ffb83a7ee72a764 1509-1516,1731-1754 gitai:{"mixed_line_ranges":[],"operations":[{"operation_id":"6a02e17165763557b22d447e","tool_type":"agent","tool_id":"SearchReplace","line_ranges":[{"Range":[1509,1516]},{"Range":[1731,1754]}]}]}
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "de830b2cdb9e2ccf9351011f2dddc1fe8163b242",
+  "prompts": {
+    "1ffb83a7ee72a764": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "69fc2d83ff4d543f39aab37e",
+        "model": "gemini-3.1-pro__dev"
+      },
+      "human_author": "xc996 <becomebr79@gmail.com>",
+      "messages": [],
+      "total_additions": 32,
+      "total_deletions": 0,
+      "accepted_lines": 32,
+      "overriden_lines": 0
+    }
+  },
+  "attestation_metadata": {
+    "_worker.js": [
+      {
+        "hash": "1ffb83a7ee72a764",
+        "line_ranges": [
+          {
+            "Range": [
+              1509,
+              1516
+            ]
+          },
+          {
+            "Range": [
+              1731,
+              1754
+            ]
+          }
+        ],
+        "mixed_line_ranges": [],
+        "operations": [
+          {
+            "operation_id": "6a02e17165763557b22d447e",
+            "tool_type": "agent",
+            "tool_id": "SearchReplace",
+            "line_ranges": [
+              {
+                "Range": [
+                  1509,
+                  1516
+                ]
+              },
+              {
+                "Range": [
+                  1731,
+                  1754
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "remote_transcripts": {
+    "1ffb83a7ee72a764": {
+      "tool": "trae",
+      "conversation_id": "69fc2d83ff4d543f39aab37e",
+      "session_id": "69fc2d83ff4d543f39aab37e",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    }
+  }
+}
