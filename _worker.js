@@ -1124,6 +1124,119 @@ function generateHomePage(scuValue) {
             z-index: 1;
         }
         
+        .latency-input-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .latency-input-group input {
+            flex: 1;
+            min-width: 0;
+            padding: 12px 8px !important;
+            text-align: center;
+        }
+        .latency-input-group .btn {
+            flex: 2;
+            margin-top: 0;
+            padding: 12px;
+        }
+        
+        #testResultUI {
+            display: none;
+            margin-top: 16px;
+            background: rgba(142, 142, 147, 0.08);
+            border-radius: 16px;
+            padding: 16px;
+        }
+        
+        .filter-radio-label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 16px;
+            padding: 6px 0;
+        }
+        .filter-radio-label input {
+            width: 18px !important;
+            height: 18px !important;
+            padding: 0 !important;
+            margin-right: 6px !important;
+            -webkit-appearance: radio !important;
+            appearance: radio !important;
+            background: transparent !important;
+        }
+        
+        .city-filter-label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .city-filter-label input {
+            width: 16px !important;
+            height: 16px !important;
+            padding: 0 !important;
+            margin-right: 6px !important;
+            -webkit-appearance: checkbox !important;
+            appearance: checkbox !important;
+            background: transparent !important;
+        }
+        
+        #latencyResultsList {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            padding: 4px 12px;
+            margin-top: 8px;
+        }
+        
+        .result-item-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .result-item-row:last-child {
+            border-bottom: none;
+        }
+        .result-item-row input[type="checkbox"] {
+            width: 18px !important;
+            height: 18px !important;
+            padding: 0 !important;
+            margin-right: 10px !important;
+            -webkit-appearance: checkbox !important;
+            appearance: checkbox !important;
+            background: transparent !important;
+        }
+        .result-item-ip {
+            flex: 1;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .result-item-city {
+            color: #007aff;
+            font-size: 13px;
+            margin: 0 8px;
+            white-space: nowrap;
+        }
+        .result-item-latency {
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 50px;
+            text-align: right;
+        }
+        
         @media (max-width: 480px) {
             .client-btn {
                 font-size: 12px;
@@ -1213,6 +1326,21 @@ function generateHomePage(scuValue) {
             
             .checkbox-label span {
                 color: #f5f5f7;
+            }
+            
+            #testResultUI {
+                background: rgba(142, 142, 147, 0.15);
+            }
+            .city-filter-label {
+                background: rgba(0, 0, 0, 0.3);
+                border-color: rgba(255, 255, 255, 0.1);
+            }
+            #latencyResultsList {
+                background: rgba(0, 0, 0, 0.2);
+                border-color: rgba(255, 255, 255, 0.05);
+            }
+            .result-item-row {
+                border-bottom-color: rgba(255, 255, 255, 0.05);
             }
             
             .client-btn {
@@ -1509,41 +1637,41 @@ function generateHomePage(scuValue) {
 
             <div class="form-group" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1);">
                 <label>在线优选 (浏览器本地测速)</label>
-                <div style="display: flex; gap: 10px; margin-top: 8px;">
-                    <input type="number" id="randomIPCount" placeholder="数量" value="20" style="width: 80px;" title="测速IP数量">
-                    <input type="number" id="latencyTestPort" placeholder="端口" value="443" style="width: 70px;" title="测速端口">
-                    <input type="number" id="testThreads" placeholder="并发" value="5" style="width: 70px;" title="并发线程数">
-                    <button type="button" class="btn btn-secondary" onclick="startLatencyTest()" id="latencyTestBtn" style="margin-top: 0; flex: 1; padding: 0 10px;">🎲 测速</button>
+                <div class="latency-input-group">
+                    <input type="number" id="randomIPCount" placeholder="数量" value="20" title="测速IP数量">
+                    <input type="number" id="latencyTestPort" placeholder="端口" value="443" title="测速端口">
+                    <input type="number" id="testThreads" placeholder="并发" value="5" title="并发线程数">
+                    <button type="button" class="btn btn-secondary" onclick="startLatencyTest()" id="latencyTestBtn">🎲 测速</button>
                 </div>
                 <div id="latencyTestStatus" style="margin-top: 8px; font-size: 13px; color: #86868b; display: none;"></div>
                 
-                <div id="testResultUI" style="display: none; margin-top: 12px; background: rgba(142, 142, 147, 0.08); border-radius: 12px; padding: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 14px; font-weight: 600;">筛选测速结果</span>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="button" onclick="selectAllResults(true)" style="background: transparent; border: none; color: #007aff; font-size: 13px; cursor: pointer;">全选</button>
-                            <button type="button" onclick="selectAllResults(false)" style="background: transparent; border: none; color: #007aff; font-size: 13px; cursor: pointer;">反选</button>
+                <div id="testResultUI">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-size: 15px; font-weight: 600;">筛选测速结果</span>
+                        <div style="display: flex; gap: 12px;">
+                            <button type="button" onclick="selectAllResults(true)" style="background: transparent; border: none; color: #007aff; font-size: 14px; cursor: pointer; padding: 0;">全选</button>
+                            <button type="button" onclick="selectAllResults(false)" style="background: transparent; border: none; color: #007aff; font-size: 14px; cursor: pointer; padding: 0;">反选</button>
                         </div>
                     </div>
                     
-                    <div style="margin-bottom: 8px;">
-                        <label style="display: inline-flex; align-items: center; cursor: pointer; font-size: 13px; margin-right: 12px;">
-                            <input type="radio" name="cityFilterMode" value="all" checked onchange="applyCityFilter()" style="margin-right: 4px;"> 全部
+                    <div style="margin-bottom: 12px;">
+                        <label class="filter-radio-label">
+                            <input type="radio" name="cityFilterMode" value="all" checked onchange="applyCityFilter()"> 全部
                         </label>
-                        <label style="display: inline-flex; align-items: center; cursor: pointer; font-size: 13px;">
-                            <input type="radio" name="cityFilterMode" value="fastest10" onchange="applyCityFilter()" style="margin-right: 4px;"> 最快10个
+                        <label class="filter-radio-label">
+                            <input type="radio" name="cityFilterMode" value="fastest10" onchange="applyCityFilter()"> 最快10个
                         </label>
                     </div>
                     
-                    <div id="cityCheckboxes" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; font-size: 13px;"></div>
+                    <div id="cityCheckboxes" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;"></div>
                     
-                    <div id="latencyResultsList" style="max-height: 150px; overflow-y: auto; background: #fff; border: 1px solid rgba(0,0,0,0.05); border-radius: 8px; padding: 8px; font-size: 13px; font-family: monospace;"></div>
+                    <div id="latencyResultsList"></div>
                     
-                    <button type="button" class="btn btn-secondary" onclick="appendSelectedResults()" style="margin-top: 10px; padding: 10px; font-size: 14px;">➕ 追加选中项到下方列表</button>
+                    <button type="button" class="btn btn-secondary" onclick="appendSelectedResults()" style="margin-top: 16px; padding: 12px; font-size: 15px;">➕ 追加选中项到下方列表</button>
                 </div>
                 
                 <textarea id="manualIPs" placeholder="优选IP将显示在这里，也可以手动输入 IP:端口#备注，每行一个" style="margin-top: 12px; height: 100px; font-size: 14px; font-family: monospace; display: none;"></textarea>
-                <small style="display: block; margin-top: 6px; color: #86868b; font-size: 13px;">通过您的浏览器直接测试 Cloudflare 节点延迟，真实反映您当前网络的连通性。</small>
+                <small style="display: block; margin-top: 8px; color: #86868b; font-size: 13px;">通过您的浏览器直接测试 Cloudflare 节点延迟，真实反映您当前网络的连通性。</small>
             </div>
 
             <div class="form-group" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1);">
@@ -2022,8 +2150,8 @@ function generateHomePage(scuValue) {
             container.innerHTML = '';
             Array.from(cityMap.entries()).forEach(([name, count]) => {
                 const label = document.createElement('label');
-                label.style.cssText = 'display: inline-flex; align-items: center; cursor: pointer; background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; padding: 2px 6px;';
-                label.innerHTML = '<input type="checkbox" class="city-filter-cb" value="' + name + '" checked onchange="applyCityFilter()" style="margin-right: 4px;"> ' + name + ' (' + count + ')';
+                label.className = 'city-filter-label';
+                label.innerHTML = '<input type="checkbox" class="city-filter-cb" value="' + name + '" checked onchange="applyCityFilter()"> ' + name + ' (' + count + ')';
                 container.appendChild(label);
             });
         }
@@ -2042,19 +2170,19 @@ function generateHomePage(scuValue) {
                 
                 count++;
                 const item = document.createElement('div');
-                item.style.cssText = 'display: flex; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.05);';
+                item.className = 'result-item-row';
                 
                 const colorStr = res.latency < 200 ? '#34c759' : '#ff9500';
-                item.innerHTML = '<input type="checkbox" class="result-cb" value="' + index + '" checked style="margin-right: 8px;">' +
-                    '<span style="flex: 1;">' + res.target + '</span>' +
-                    '<span style="color: #007aff; margin-right: 8px;">' + res.coloName + '</span>' +
-                    '<span style="color: ' + colorStr + ';">' + res.latency + 'ms</span>';
+                item.innerHTML = '<input type="checkbox" class="result-cb" value="' + index + '" checked>' +
+                    '<span class="result-item-ip">' + res.target + '</span>' +
+                    '<span class="result-item-city">' + res.coloName + '</span>' +
+                    '<span class="result-item-latency" style="color: ' + colorStr + ';">' + res.latency + 'ms</span>';
                 
                 listContainer.appendChild(item);
             });
             
             if (count === 0) {
-                listContainer.innerHTML = '<div style="color: #86868b; text-align: center; padding: 10px;">没有符合条件的节点</div>';
+                listContainer.innerHTML = '<div style="color: #86868b; text-align: center; padding: 20px 10px;">没有符合条件的节点</div>';
             }
         }
 
