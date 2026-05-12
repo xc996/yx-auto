@@ -1654,12 +1654,15 @@ function generateHomePage(scuValue) {
                         </div>
                     </div>
                     
-                    <div style="margin-bottom: 12px;">
+                    <div style="margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
                         <label class="filter-radio-label">
                             <input type="radio" name="cityFilterMode" value="all" checked onchange="applyCityFilter()"> 全部
                         </label>
                         <label class="filter-radio-label">
                             <input type="radio" name="cityFilterMode" value="fastest10" onchange="applyCityFilter()"> 最快10个
+                        </label>
+                        <label class="filter-radio-label">
+                            <input type="radio" name="cityFilterMode" value="eachCity10" onchange="applyCityFilter()"> 每城市前10个
                         </label>
                     </div>
                     
@@ -2163,10 +2166,17 @@ function generateHomePage(scuValue) {
             
             listContainer.innerHTML = '';
             let count = 0;
+            const cityCountMap = new Map();
             
             testResults.forEach((res, index) => {
                 if (!checkedCities.includes(res.coloName)) return;
                 if (mode === 'fastest10' && count >= 10) return;
+                
+                if (mode === 'eachCity10') {
+                    const currentCityCount = cityCountMap.get(res.coloName) || 0;
+                    if (currentCityCount >= 10) return;
+                    cityCountMap.set(res.coloName, currentCityCount + 1);
+                }
                 
                 count++;
                 const item = document.createElement('div');
